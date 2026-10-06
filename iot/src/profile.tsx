@@ -14,6 +14,7 @@ const RESOURCE_LINKS = [
     url: 'https://toquangtrung2510-2949482.postman.co/workspace/Default-workspace~dc498567-9ee6-4a77-9253-63fe99636a35/collection/49928453-50eea0a6-27f0-4f92-984a-b8eef075c8e7?action=share&creator=49928453',
   },
   { label: 'Figma', url: 'https://www.figma.com/site/N2Sg8smyFsJmTT43LPS0uR/Untitled?node-id=2-588&t=CBHmJ8Ut7V4J7yHb-1' },
+  {label: 'Tài liệu', url: "Tai_lieu_IoT.pdf"}
 ];
 
 import avatarImage from './assets/AT.jpg';
@@ -42,8 +43,8 @@ export function Profile() {
             </div>
             <div style={styles.identity}>
               <span style={styles.name}>Tô Quang Trung</span>
-              <span style={styles.identityMeta}>B23DCCN863</span>
-              <span style={styles.identityMeta}>D23CNPM04</span>
+              <span style={styles.identityMeta}>MSV: B23DCCN863</span>
+              <span style={styles.identityMeta}>Lớp: D23CNPM04</span>
             </div>
           </div>
 

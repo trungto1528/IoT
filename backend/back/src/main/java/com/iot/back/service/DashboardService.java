@@ -11,8 +11,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
-        @Autowired
-        private MqttResponseBridgeService bridgeService;
+        private final MqttResponseBridgeService bridgeService;
 
         public Map<String, Boolean> getLedStatus() {
 

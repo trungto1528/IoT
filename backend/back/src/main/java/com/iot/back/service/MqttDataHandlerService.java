@@ -20,9 +20,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MqttDataHandlerService {
     
-    private SensorRepository sensorRepository;
-    private DataRepository dataRepository;
-    private SimpMessagingTemplate messagingTemplate;
+    private final SensorRepository sensorRepository;
+    private final DataRepository dataRepository;
+    private final SimpMessagingTemplate messagingTemplate;
     public void onMessageReceived(Float temp, Float humid, Float light, Long timestamp) {
         LocalDateTime recordTime;
         if (timestamp != null && timestamp > 0) {
