@@ -1,0 +1,19 @@
+# Frontend dependencies and generated bundles
+**/node_modules/
+**/dist/
+
+# Java/Maven build output and generated workspace copies
+**/target/
+**/bin/
+
+# IDE and editor settings
+.vscode/
+**/.vscode/
+**/.idea/
+**/.settings/
+
+# Local environment files and runtime logs
+.env
+.env.*
+!.env.example
+*.log
