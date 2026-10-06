@@ -1,0 +1,72 @@
+{
+  "info": {
+    "name": "IoT API",
+    "description": "Collection generated from the backend OpenAPI document.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"example_user\",\n  \"password\": \"change-me\",\n  \"display_name\": \"Example User\",\n  \"email\": \"user@example.com\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/register"
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"example_user\",\n  \"password\": \"change-me\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/login"
+      }
+    },
+    {
+      "name": "Dashboard control",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/dashboard/control"
+      }
+    },
+    {
+      "name": "Sensor data",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/sensor-data?page=0&size=10"
+      }
+    },
+    {
+      "name": "Profile",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id\": 1\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/profile"
+      }
+    },
+    {
+      "name": "Dashboard LED",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/dashboard/led"
+      }
+    },
+    {
+      "name": "Actions",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/actions?page=0&size=10&sort=time,desc"
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@
 # Java/Maven build output and generated workspace copies
 **/target/
 **/bin/
+**/.mvn/repository/
 
 # IDE and editor settings
 .vscode/
