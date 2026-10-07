@@ -160,7 +160,7 @@ public class MqttResponseBridgeService {
                                 // ========================================
 
                                 actionLog.setStatus("Thành công");
-                                actionLog.setTime(LocalDateTime.now());
+                                actionLog.setTime(LocalDateTime.now().withNano(0));
 
                                 actionRepository.save(actionLog);
 

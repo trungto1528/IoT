@@ -19,55 +19,116 @@ public class SensorDataService {
 
     private final DataRepository sensorDataRepository;
 
-    public SensorDataService(DataRepository sensorDataRepository) {
-        this.sensorDataRepository = sensorDataRepository;
+    /*
+     * Sai số khi tìm giá trị Float.
+     *
+     * Ví dụ nhập:
+     *
+     * 25.1
+     *
+     * Backend sẽ tìm:
+     *
+     * 25.0999 <= value <= 25.1001
+     *
+     * Như vậy sẽ không bị lỗi do sai số Float.
+     */
+    private static final float VALUE_TOLERANCE = 0.0001f;
+
+    public SensorDataService(
+            DataRepository sensorDataRepository
+    ) {
+        this.sensorDataRepository =
+                sensorDataRepository;
     }
 
     public Page<Data> getSensorData(
             SensorType type,
             Float value,
             String timeStr,
-            Pageable pageable) {
+            Pageable pageable
+    ) {
+
+        /*
+         * Tạo khoảng tìm kiếm cho value.
+         *
+         * Ví dụ:
+         *
+         * value = 25.1
+         *
+         * minValue = 25.0999
+         * maxValue = 25.1001
+         */
+        Float minValue = null;
+        Float maxValue = null;
+
+        if (value != null) {
+            minValue =
+                    value - VALUE_TOLERANCE;
+
+            maxValue =
+                    value + VALUE_TOLERANCE;
+        }
 
         /*
          * Không có bộ lọc thời gian
          */
-        if (timeStr == null || timeStr.isBlank()) {
+        if (
+                timeStr == null ||
+                timeStr.isBlank()
+        ) {
 
             // Không có type và không có value
-            if (type == null && value == null) {
-                return sensorDataRepository.findAll(pageable);
+            if (
+                    type == null &&
+                    value == null
+            ) {
+                return sensorDataRepository
+                        .findAll(pageable);
             }
 
             // Chỉ có type
-            if (type != null && value == null) {
-                return sensorDataRepository.findBySensor_Type(
-                        type,
-                        pageable
-                );
+            if (
+                    type != null &&
+                    value == null
+            ) {
+                return sensorDataRepository
+                        .findBySensor_Type(
+                                type,
+                                pageable
+                        );
             }
 
             // Chỉ có value
             if (type == null) {
-                return sensorDataRepository.findByValue(
-                        value,
-                        pageable
-                );
+                return sensorDataRepository
+                        .findByValueBetween(
+                                minValue,
+                                maxValue,
+                                pageable
+                        );
             }
 
             // Có type + value
-            return sensorDataRepository.findBySensor_TypeAndValue(
-                    type,
-                    value,
-                    pageable
-            );
+            return sensorDataRepository
+                    .findBySensor_TypeAndValueBetween(
+                            type,
+                            minValue,
+                            maxValue,
+                            pageable
+                    );
         }
 
         /*
          * Có bộ lọc thời gian
          */
 
-        String cleanTime = timeStr.trim().replace("T", " ");
+        String cleanTime =
+                timeStr
+                        .trim()
+                        .replace(
+                                "T",
+                                " "
+                        );
 
         LocalDateTime startTime;
         LocalDateTime endTime;
@@ -75,204 +136,300 @@ public class SensorDataService {
         try {
 
             // YYYY
-            if (cleanTime.matches("^\\d{4}$")) {
+            if (
+                    cleanTime.matches(
+                            "^\\d{4}$"
+                    )
+            ) {
 
-                int year = Integer.parseInt(cleanTime);
-
-                startTime = LocalDate
-                        .of(year, 1, 1)
-                        .atStartOfDay();
-
-                endTime = startTime
-                        .plusYears(1)
-                        .minusNanos(1);
-
-            // YYYY-MM
-            } else if (cleanTime.matches("^\\d{4}-\\d{2}$")) {
-
-                YearMonth yearMonth = YearMonth.parse(
-                        cleanTime,
-                        DateTimeFormatter.ofPattern("yyyy-MM")
-                );
-
-                startTime = yearMonth
-                        .atDay(1)
-                        .atStartOfDay();
-
-                endTime = startTime
-                        .plusMonths(1)
-                        .minusNanos(1);
-
-            // YYYY-MM-DD
-            } else if (cleanTime.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
-
-                LocalDate date = LocalDate.parse(cleanTime);
-
-                startTime = date.atStartOfDay();
-
-                endTime = startTime
-                        .plusDays(1)
-                        .minusNanos(1);
-
-            // YYYY-MM-DD HH
-            } else if (cleanTime.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}$")) {
-
-                DateTimeFormatter formatter =
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH");
-
-                startTime = LocalDateTime.parse(
-                        cleanTime,
-                        formatter
-                );
-
-                endTime = startTime
-                        .plusHours(1)
-                        .minusNanos(1);
-
-            // YYYY-MM-DD HH:mm
-            } else if (cleanTime.matches(
-                    "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$")) {
-
-                DateTimeFormatter formatter =
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
-                startTime = LocalDateTime.parse(
-                        cleanTime,
-                        formatter
-                );
-
-                endTime = startTime
-                        .plusMinutes(1)
-                        .minusNanos(1);
-
-            // YYYY-MM-DD HH:mm:ss
-            } else if (cleanTime.matches(
-                    "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$")) {
-
-                DateTimeFormatter formatter =
-                        DateTimeFormatter.ofPattern(
-                                "yyyy-MM-dd HH:mm:ss"
+                int year =
+                        Integer.parseInt(
+                                cleanTime
                         );
 
-                startTime = LocalDateTime.parse(
-                        cleanTime,
-                        formatter
-                );
+                startTime =
+                        LocalDate
+                                .of(
+                                        year,
+                                        1,
+                                        1
+                                )
+                                .atStartOfDay();
 
-                endTime = startTime
-                        .plusSeconds(1)
-                        .minusNanos(1);
+                endTime =
+                        startTime
+                                .plusYears(1)
+                                .minusNanos(1);
+
+            // YYYY-MM
+            } else if (
+                    cleanTime.matches(
+                            "^\\d{4}-\\d{2}$"
+                    )
+            ) {
+
+                YearMonth yearMonth =
+                        YearMonth.parse(
+                                cleanTime,
+                                DateTimeFormatter
+                                        .ofPattern(
+                                                "yyyy-MM"
+                                        )
+                        );
+
+                startTime =
+                        yearMonth
+                                .atDay(1)
+                                .atStartOfDay();
+
+                endTime =
+                        startTime
+                                .plusMonths(1)
+                                .minusNanos(1);
+
+            // YYYY-MM-DD
+            } else if (
+                    cleanTime.matches(
+                            "^\\d{4}-\\d{2}-\\d{2}$"
+                    )
+            ) {
+
+                LocalDate date =
+                        LocalDate.parse(
+                                cleanTime
+                        );
+
+                startTime =
+                        date.atStartOfDay();
+
+                endTime =
+                        startTime
+                                .plusDays(1)
+                                .minusNanos(1);
+
+            // YYYY-MM-DD HH
+            } else if (
+                    cleanTime.matches(
+                            "^\\d{4}-\\d{2}-\\d{2} \\d{2}$"
+                    )
+            ) {
+
+                DateTimeFormatter formatter =
+                        DateTimeFormatter
+                                .ofPattern(
+                                        "yyyy-MM-dd HH"
+                                );
+
+                startTime =
+                        LocalDateTime.parse(
+                                cleanTime,
+                                formatter
+                        );
+
+                endTime =
+                        startTime
+                                .plusHours(1)
+                                .minusNanos(1);
+
+            // YYYY-MM-DD HH:mm
+            } else if (
+                    cleanTime.matches(
+                            "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$"
+                    )
+            ) {
+
+                DateTimeFormatter formatter =
+                        DateTimeFormatter
+                                .ofPattern(
+                                        "yyyy-MM-dd HH:mm"
+                                );
+
+                startTime =
+                        LocalDateTime.parse(
+                                cleanTime,
+                                formatter
+                        );
+
+                endTime =
+                        startTime
+                                .plusMinutes(1)
+                                .minusNanos(1);
+
+            // YYYY-MM-DD HH:mm:ss
+            } else if (
+                    cleanTime.matches(
+                            "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+                    )
+            ) {
+
+                DateTimeFormatter formatter =
+                        DateTimeFormatter
+                                .ofPattern(
+                                        "yyyy-MM-dd HH:mm:ss"
+                                );
+
+                startTime =
+                        LocalDateTime.parse(
+                                cleanTime,
+                                formatter
+                        );
+
+                endTime =
+                        startTime
+                                .plusSeconds(1)
+                                .minusNanos(1);
 
             } else {
 
                 /*
-                 * Thời gian không đúng định dạng.
-                 * Giữ nguyên hành vi cũ: bỏ qua filter time,
-                 * nhưng vẫn áp dụng type/value.
+                 * Time không hợp lệ:
+                 * bỏ qua filter time,
+                 * nhưng vẫn giữ type/value.
                  */
 
-                if (type == null && value == null) {
-                    return sensorDataRepository.findAll(pageable);
+                if (
+                        type == null &&
+                        value == null
+                ) {
+                    return sensorDataRepository
+                            .findAll(pageable);
                 }
 
-                if (type != null && value == null) {
-                    return sensorDataRepository.findBySensor_Type(
-                            type,
-                            pageable
-                    );
+                if (
+                        type != null &&
+                        value == null
+                ) {
+                    return sensorDataRepository
+                            .findBySensor_Type(
+                                    type,
+                                    pageable
+                            );
                 }
 
                 if (type == null) {
-                    return sensorDataRepository.findByValue(
-                            value,
-                            pageable
-                    );
+                    return sensorDataRepository
+                            .findByValueBetween(
+                                    minValue,
+                                    maxValue,
+                                    pageable
+                            );
                 }
 
-                return sensorDataRepository.findBySensor_TypeAndValue(
-                        type,
-                        value,
-                        pageable
-                );
+                return sensorDataRepository
+                        .findBySensor_TypeAndValueBetween(
+                                type,
+                                minValue,
+                                maxValue,
+                                pageable
+                        );
             }
 
-        } catch (DateTimeParseException | NumberFormatException e) {
+        } catch (
+                DateTimeParseException |
+                NumberFormatException e
+        ) {
 
             /*
-             * Thời gian không parse được.
-             * Giữ nguyên hành vi cũ: bỏ qua filter time,
-             * nhưng vẫn áp dụng type/value.
+             * Time không parse được:
+             * bỏ qua filter time,
+             * nhưng vẫn giữ type/value.
              */
 
-            if (type == null && value == null) {
-                return sensorDataRepository.findAll(pageable);
+            if (
+                    type == null &&
+                    value == null
+            ) {
+                return sensorDataRepository
+                        .findAll(pageable);
             }
 
-            if (type != null && value == null) {
-                return sensorDataRepository.findBySensor_Type(
-                        type,
-                        pageable
-                );
+            if (
+                    type != null &&
+                    value == null
+            ) {
+                return sensorDataRepository
+                        .findBySensor_Type(
+                                type,
+                                pageable
+                        );
             }
 
             if (type == null) {
-                return sensorDataRepository.findByValue(
-                        value,
-                        pageable
-                );
+                return sensorDataRepository
+                        .findByValueBetween(
+                                minValue,
+                                maxValue,
+                                pageable
+                        );
             }
 
-            return sensorDataRepository.findBySensor_TypeAndValue(
-                    type,
-                    value,
-                    pageable
-            );
+            return sensorDataRepository
+                    .findBySensor_TypeAndValueBetween(
+                            type,
+                            minValue,
+                            maxValue,
+                            pageable
+                    );
         }
 
         /*
-         * Đến đây nghĩa là time hợp lệ.
-         *
-         * Có 4 trường hợp:
-         *
-         * 1. time
-         * 2. type + time
-         * 3. value + time
-         * 4. type + value + time
+         * Time hợp lệ.
          */
 
-        if (type == null && value == null) {
-
-            return sensorDataRepository.findByTimeBetween(
-                    startTime,
-                    endTime,
-                    pageable
-            );
+        // Chỉ có time
+        if (
+                type == null &&
+                value == null
+        ) {
+            return sensorDataRepository
+                    .findByTimeBetween(
+                            startTime,
+                            endTime,
+                            pageable
+                    );
         }
 
-        if (type != null && value == null) {
-
-            return sensorDataRepository.findBySensor_TypeAndTimeBetween(
-                    type,
-                    startTime,
-                    endTime,
-                    pageable
-            );
+        // Type + time
+        if (
+                type != null &&
+                value == null
+        ) {
+            return sensorDataRepository
+                    .findBySensor_TypeAndTimeBetween(
+                            type,
+                            startTime,
+                            endTime,
+                            pageable
+                    );
         }
 
+        // Value + time
         if (type == null) {
 
-            return sensorDataRepository.findByValueAndTimeBetween(
-                    value,
-                    startTime,
-                    endTime,
-                    pageable
-            );
+            /*
+             * Không dùng:
+             *
+             * findByValueAndTimeBetween()
+             *
+             * vì value là Float và có thể
+             * gặp sai số.
+             */
+            return sensorDataRepository
+                    .findByValueBetweenAndTimeBetween(
+                            minValue,
+                            maxValue,
+                            startTime,
+                            endTime,
+                            pageable
+                    );
         }
 
+        // Type + value + time
         return sensorDataRepository
-                .findBySensor_TypeAndValueAndTimeBetween(
+                .findBySensor_TypeAndValueBetweenAndTimeBetween(
                         type,
-                        value,
+                        minValue,
+                        maxValue,
                         startTime,
                         endTime,
                         pageable

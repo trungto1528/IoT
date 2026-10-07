@@ -97,8 +97,9 @@ export function SensorData() {
           }
         }
 
-        if (selectedTime.trim()) {
-          params.append(
+
+        if (isValidTimeFilter(selectedTime.trim())) {
+          params.set(
             'time',
             selectedTime.trim()
           );
@@ -153,8 +154,8 @@ export function SensorData() {
 
               stt: String(
                 currentPage * PAGE_SIZE +
-                  index +
-                  1
+                index +
+                1
               ).padStart(2, '0'),
 
               type: detail.type,
@@ -208,7 +209,22 @@ export function SensorData() {
       setSortOrder('asc');
     }
   };
+  const isValidTimeFilter = (value: string) => {
+    const time = value.trim();
 
+    if (!time) {
+      return false;
+    }
+
+    return (
+      /^\d{4}$/.test(time) ||
+      /^\d{4}-\d{2}$/.test(time) ||
+      /^\d{4}-\d{2}-\d{2}$/.test(time) ||
+      /^\d{4}-\d{2}-\d{2} \d{2}$/.test(time) ||
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(time) ||
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(time)
+    );
+  };
   const processedData = useMemo(() => {
     const data = [...sensorData];
 
@@ -344,7 +360,7 @@ export function SensorData() {
             style={{
               transform:
                 isActive &&
-                sortOrder === 'asc'
+                  sortOrder === 'asc'
                   ? 'rotate(180deg)'
                   : 'rotate(0deg)',
 
@@ -554,7 +570,7 @@ export function SensorData() {
               ...styles.pageArrow,
               opacity:
                 currentPage >=
-                totalPages - 1
+                  totalPages - 1
                   ? 0.4
                   : 1,
             }}
@@ -605,7 +621,7 @@ const styles: {
     margin: 0,
     fontSize: 'clamp(18px, 2vw, 28px)',
     fontWeight: 700,
-    color: '#ffffff',
+    color: '#06e961',
     minWidth: 0,
   },
 

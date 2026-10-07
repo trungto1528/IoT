@@ -29,20 +29,30 @@ public interface DataRepository extends JpaRepository<Data, Long> {
             Pageable pageable
     );
 
-    // Search theo giá trị cảm biến
-    Page<Data> findByValue(
-            Float value,
+    /*
+     * Tìm giá trị trong khoảng sai số.
+     *
+     * Ví dụ:
+     * value = 25.1
+     * min   = 25.0999
+     * max   = 25.1001
+     */
+    Page<Data> findByValueBetween(
+            Float minValue,
+            Float maxValue,
             Pageable pageable
     );
 
-    // Search theo loại cảm biến + giá trị
-    Page<Data> findBySensor_TypeAndValue(
+    /*
+     * Tìm theo loại sensor + khoảng giá trị.
+     */
+    Page<Data> findBySensor_TypeAndValueBetween(
             SensorType type,
-            Float value,
+            Float minValue,
+            Float maxValue,
             Pageable pageable
     );
 
-    // Search theo giá trị + thời gian
     Page<Data> findByValueAndTimeBetween(
             Float value,
             LocalDateTime start,
@@ -50,7 +60,6 @@ public interface DataRepository extends JpaRepository<Data, Long> {
             Pageable pageable
     );
 
-    // Search theo loại + giá trị + thời gian
     Page<Data> findBySensor_TypeAndValueAndTimeBetween(
             SensorType type,
             Float value,

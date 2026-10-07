@@ -157,7 +157,7 @@ export function ActivityHistory() {
                 );
             }
 
-            if (timeFilter.trim()) {
+            if (isValidTimeFilter(timeFilter)) {
                 params.set(
                     'time',
                     timeFilter.trim()
@@ -201,7 +201,22 @@ export function ActivityHistory() {
             setLoading(false);
         }
     };
+    const isValidTimeFilter = (value: string) => {
+        const time = value.trim();
 
+        if (!time) {
+            return false;
+        }
+
+        return (
+            /^\d{4}$/.test(time) ||
+            /^\d{4}-\d{2}$/.test(time) ||
+            /^\d{4}-\d{2}-\d{2}$/.test(time) ||
+            /^\d{4}-\d{2}-\d{2} \d{2}$/.test(time) ||
+            /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(time) ||
+            /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(time)
+        );
+    };
     const handleUserChange = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -389,7 +404,7 @@ export function ActivityHistory() {
 
                     <input
                         type="text"
-                        placeholder="Tên thiết bị / số thiết bị"
+                        placeholder="Tên thiết bị"
                         value={deviceFilter}
                         onChange={
                             handleDeviceChange
@@ -619,7 +634,7 @@ export function ActivityHistory() {
                                     </td>
                                 </tr>
                             ) : activities.length >
-                              0 ? (
+                                0 ? (
                                 activities.map(
                                     item => (
                                         <tr
@@ -739,14 +754,14 @@ export function ActivityHistory() {
                             opacity:
                                 currentPage ===
                                     0 ||
-                                loading
+                                    loading
                                     ? 0.4
                                     : 1,
 
                             cursor:
                                 currentPage ===
                                     0 ||
-                                loading
+                                    loading
                                     ? 'not-allowed'
                                     : 'pointer',
                         }}
@@ -780,22 +795,22 @@ export function ActivityHistory() {
                             opacity:
                                 currentPage >=
                                     totalPages -
-                                        1 ||
-                                loading
+                                    1 ||
+                                    loading
                                     ? 0.4
                                     : 1,
 
                             cursor:
                                 currentPage >=
                                     totalPages -
-                                        1 ||
-                                loading
+                                    1 ||
+                                    loading
                                     ? 'not-allowed'
                                     : 'pointer',
                         }}
                         disabled={
                             currentPage >=
-                                totalPages - 1 ||
+                            totalPages - 1 ||
                             loading
                         }
                         onClick={() =>
