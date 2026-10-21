@@ -67,4 +67,21 @@ public interface DataRepository extends JpaRepository<Data, Long> {
             LocalDateTime end,
             Pageable pageable
     );
+
+    Page<Data> findByValueBetweenAndTimeBetween(
+            Float minValue,
+            Float maxValue,
+            LocalDateTime start,
+            LocalDateTime end,
+            Pageable pageable
+    );
+
+    Page<Data> findBySensor_TypeAndValueBetweenAndTimeBetween(
+            SensorType type,
+            Float minValue,
+            Float maxValue,
+            LocalDateTime start,
+            LocalDateTime end,
+            Pageable pageable
+    );
 }

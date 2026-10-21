@@ -44,7 +44,6 @@ const SENSOR_CONFIG = {
   },
 };
 
-/* Mock cố định: không API, không MQTT, không tạo điểm mới. */
 const MOCK_HISTORY: HistoryPoint[] = [
   { temperature: 24.5, humidity: 58.2, light: 4200, timestamp: '2026-10-07T08:00:00' },
   { temperature: 24.8, humidity: 59.1, light: 4500, timestamp: '2026-10-07T08:02:00' },
@@ -155,8 +154,7 @@ export function Dashboard() {
       [ledId]: true,
     }));
 
-    // Chỉ mô phỏng thao tác bật/tắt, không gọi API.
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     setLedStates((prev) => ({
       ...prev,
@@ -285,11 +283,11 @@ export function Dashboard() {
       <div style={styles.cardsRow}>
         <div
           style={{
-            ...styles.card,
+            ...styles.card,backgroundColor:"orange",
             opacity: isConnected ? 1 : 0.6,
           }}
         >
-          <div style={styles.cardLabel}>
+          <div style={{...styles.cardLabel}}>
             NHIỆT ĐỘ
           </div>
 
@@ -306,11 +304,11 @@ export function Dashboard() {
 
         <div
           style={{
-            ...styles.card,
+            ...styles.card,backgroundColor:"blue",
             opacity: isConnected ? 1 : 0.6,
           }}
         >
-          <div style={styles.cardLabel}>
+          <div style={{...styles.cardLabel}}>
             ĐỘ ẨM
           </div>
 
@@ -327,11 +325,11 @@ export function Dashboard() {
 
         <div
           style={{
-            ...styles.card,
+            ...styles.card,backgroundColor:"green",
             opacity: isConnected ? 1 : 0.6,
           }}
         >
-          <div style={styles.cardLabel}>
+          <div style={{...styles.cardLabel}}>
             ÁNH SÁNG
           </div>
 
@@ -578,7 +576,6 @@ export function Dashboard() {
                           d="M8.5 14.5C7.55 13.55 7 12.3 7 11a5 5 0 0 1 10 0c0 1.3-.55 2.55-1.5 3.5-.75.75-1.5 1.35-1.5 2.5h-4c0-1.15-.75-1.75-1.5-2.5Z"
                         />
 
-                        {/* Tia sáng khi bật */}
                         {isOn && (
                           <>
                             <path d="M12 2v1.5" />
@@ -748,7 +745,7 @@ const styles: {
     fontSize:
       'clamp(9px, 0.75vw, 12px)',
     fontWeight: 700,
-    color: '#6b7280',
+    color: '#000000',
     letterSpacing: '0.6px',
     textTransform: 'uppercase',
     overflow: 'hidden',
@@ -766,7 +763,7 @@ const styles: {
 
   cardVal: {
     fontSize:
-      'clamp(22px, 2.5vw, 36px)',
+      'clamp(22px, 2.5vw, 30px)',
     fontWeight: 700,
     color: '#111827',
     overflow: 'hidden',
@@ -778,7 +775,7 @@ const styles: {
   cardUnit: {
     fontSize:
       'clamp(12px, 1.4vw, 20px)',
-    color: '#6b7280',
+    color: "#000000",
     fontWeight: 400,
     whiteSpace: 'nowrap',
     flexShrink: 0,

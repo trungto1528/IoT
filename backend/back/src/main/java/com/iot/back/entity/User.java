@@ -33,6 +33,18 @@ public class User {
     @Column(name = "display_name", length = 255)
     private String displayName;
 
+    @Column(length = 50)
+    private String msv;
+
+    @Column(name = "class", length = 50)
+    private String className;
+
     @Column(length = 255)
-    private String email;
+    private String github;
+
+    @Column(length = 255)
+    private String figma;
+
+    @Column(length = 255)
+    private String postman;
 }

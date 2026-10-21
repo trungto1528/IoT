@@ -344,12 +344,12 @@ export function SensorData() {
   const filteredData = useMemo(() => {
     let data = [...MOCK_SENSOR_DATA];
 
-    if (selectedSensor !== 'all') {
-      data = data.filter(
-        (item) =>
-          item.type === selectedSensor
-      );
-    }
+    // if (selectedSensor !== 'all') {
+    //   data = data.filter(
+    //     (item) =>
+    //       item.type === selectedSensor
+    //   );
+    // }
 
     const timeFilter =
       selectedTime.trim();
@@ -534,7 +534,14 @@ export function SensorData() {
 
     return items;
   };
-
+  // const renderUnit=(type:SensorRecord['type'])=>{
+  //   const typeUnit = {
+  //     temperature: "°C",
+  //     humidity: "%",
+  //     light: "Lux"
+  //   };
+  //   return typeUnit[type];
+  // }
   const renderTypeBadge = (
     type: SensorRecord['type'],
     typeName: string
@@ -643,7 +650,7 @@ export function SensorData() {
             style={{
               transform:
                 isActive &&
-                sortOrder === 'asc'
+                  sortOrder === 'asc'
                   ? 'rotate(180deg)'
                   : 'rotate(0deg)',
               transition:
@@ -673,7 +680,7 @@ export function SensorData() {
                 setSelectedSensor(
                   e.target.value
                 );
-                setCurrentPage(0);
+                // setCurrentPage(0);
               }}
               style={styles.selectInput}
             >
@@ -681,7 +688,7 @@ export function SensorData() {
                 value="all"
                 style={styles.selectOption}
               >
-                Tất cả cảm biến
+                Tất cả
               </option>
 
               <option
@@ -704,6 +711,12 @@ export function SensorData() {
               >
                 Ánh sáng
               </option>
+              <option
+                value="time"
+                style={styles.selectOption}
+              >
+                Thời gian
+              </option>
             </select>
 
             <span style={styles.selectIcon}>
@@ -723,7 +736,7 @@ export function SensorData() {
           <div style={styles.selectWrapper}>
             <input
               type="text"
-              placeholder="YYYY-MM-DD HH:mm:ss"
+              placeholder="Tìm kiếm"
               value={selectedTime}
               onChange={(e) => {
                 setSelectedTime(
@@ -795,7 +808,7 @@ export function SensorData() {
                       )}
                     </td>
 
-                    <td style={styles.td}>
+                    <td style={{...styles.td}}>
                       {row.value}
                     </td>
 
@@ -921,7 +934,7 @@ export function SensorData() {
                 ...styles.pageArrow,
                 opacity:
                   totalPages === 0 ||
-                  currentPage >=
+                    currentPage >=
                     totalPages - 1
                     ? 0.35
                     : 1,
@@ -929,7 +942,7 @@ export function SensorData() {
               disabled={
                 totalPages === 0 ||
                 currentPage >=
-                  totalPages - 1
+                totalPages - 1
               }
               onClick={() =>
                 setCurrentPage(
@@ -946,7 +959,7 @@ export function SensorData() {
                 ...styles.pageArrow,
                 opacity:
                   totalPages === 0 ||
-                  currentPage >=
+                    currentPage >=
                     totalPages - 1
                     ? 0.35
                     : 1,
@@ -954,7 +967,7 @@ export function SensorData() {
               disabled={
                 totalPages === 0 ||
                 currentPage >=
-                  totalPages - 1
+                totalPages - 1
               }
               onClick={() =>
                 setCurrentPage(
@@ -970,9 +983,9 @@ export function SensorData() {
           <span style={styles.totalInfo}>
             {sortedData.length > 0
               ? `${currentPage * pageSize + 1}-${Math.min(
-                  (currentPage + 1) * pageSize,
-                  sortedData.length
-                )} / ${sortedData.length}`
+                (currentPage + 1) * pageSize,
+                sortedData.length
+              )} / ${sortedData.length}`
               : '0 / 0'}
           </span>
         </div>

@@ -52,8 +52,13 @@ public class UserService {
         
         return userRepository.findById(id)
                 .map(user -> UserProfileResponse.builder()
+                        .username(user.getUsername())
                         .display_name(user.getDisplayName() != null ? user.getDisplayName() : user.getUsername())
-                        .email(user.getEmail())
+                        .msv(user.getMsv())
+                        .className(user.getClassName())
+                        .github(user.getGithub())
+                        .figma(user.getFigma())
+                        .postman(user.getPostman())
                         .build())
                 .orElse(null);
     }
@@ -68,12 +73,16 @@ public class UserService {
                     .build();
         }
 
-        // 2. Tạo user mới
+        // 2. Tạo user mới, các thông tin khác được sinh mặc định
         User newUser = User.builder()
                 .username(request.getUsername())
                 .password(request.getPassword())
-                .displayName(request.getDisplay_name() != null ? request.getDisplay_name() : request.getUsername())
-                .email(request.getEmail())
+                .displayName("Tô Quang Trung")
+                .className("D23CNPM-04")
+                .msv("B23DCCN863")
+                .postman("https://toquangtrung2510-2949482.postman.co/workspace/Default-workspace~dc498567-9ee6-4a77-9253-63fe99636a35/request/49928453-1ff0e4cb-93e9-4fcb-84cb-2ab1110cf9e2?action=share&creator=49928453")
+                .github("https://github.com/trungto1528/IoT")
+                .figma("https://www.figma.com/site/N2Sg8smyFsJmTT43LPS0uR/Untitled?node-id=2-588&t=CBHmJ8Ut7V4J7yHb-1")
                 .build();
 
         userRepository.save(newUser);

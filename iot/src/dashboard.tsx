@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -50,20 +50,81 @@ const SENSOR_CONFIG = {
   temperature: {
     min: 0,
     max: 50,
-    color: '#fb923c',
+    color: '#f97316',
   },
-
   humidity: {
     min: 0,
     max: 100,
-    color: '#60a5fa',
+    color: '#2563eb',
   },
-
   light: {
     min: 0,
     max: 10000,
-    color: '#4ade80',
+    color: '#16a34a',
   },
+};
+
+const clampRatio = (
+  value: number,
+  min: number,
+  max: number
+): number => {
+  if (max <= min) {
+    return 0;
+  }
+
+  return Math.max(
+    0,
+    Math.min(1, (value - min) / (max - min))
+  );
+};
+
+const mixHexColors = (
+  from: string,
+  to: string,
+  ratio: number
+): string => {
+  const fromHex = from.replace('#', '');
+  const toHex = to.replace('#', '');
+
+  const channels = [0, 2, 4].map(
+    (index) => {
+      const start = parseInt(
+        fromHex.substring(index, index + 2),
+        16
+      );
+
+      const end = parseInt(
+        toHex.substring(index, index + 2),
+        16
+      );
+
+      return Math.round(
+        start + (end - start) * ratio
+      );
+    }
+  );
+
+  return `rgb(${channels.join(', ')})`;
+};
+
+const getValueGradient = (
+  value: number,
+  min: number,
+  max: number,
+  startColor: string,
+  lowColor: string,
+  highColor: string
+): string => {
+  const ratio = clampRatio(value, min, max);
+
+  const endColor = mixHexColors(
+    lowColor,
+    highColor,
+    ratio
+  );
+
+  return `linear-gradient(135deg, ${startColor} 0%, ${endColor} 100%)`;
 };
 
 const MAX_HISTORY_LENGTH = 30;
@@ -94,6 +155,9 @@ export function Dashboard() {
 
   const [history, setHistory] =
     useState<HistoryPoint[]>([]);
+
+  const [hoverIndex, setHoverIndex] =
+    useState<number | null>(null);
 
   const [ledStates, setLedStates] =
     useState<Record<LEDId, boolean>>({
@@ -172,27 +236,6 @@ export function Dashboard() {
     value: string
   ): string => {
     return value;
-  };
-
-  /*
-   * Hiển thị HH:mm:ss trên trục X.
-   */
-  const formatChartTime = (
-    timestamp: string
-  ): string => {
-    if (!timestamp) {
-      return '';
-    }
-
-    const value =
-      timestamp.replace('T', ' ');
-
-    if (value.includes(' ')) {
-      return value.split(' ')[1]
-        ?.substring(0, 8) ?? value;
-    }
-
-    return value.substring(0, 8);
   };
 
   /*
@@ -843,6 +886,77 @@ export function Dashboard() {
       .join(' ');
   };
 
+  const getChartXPercent = (
+    index: number
+  ): number => {
+    const width = 500;
+
+    const stepX =
+      width /
+      (MAX_HISTORY_LENGTH - 1);
+
+    const x =
+      width -
+      (history.length - 1 - index) *
+        stepX;
+
+    return (x / width) * 100;
+  };
+
+  const handleChartMouseMove = (
+    event: React.MouseEvent<HTMLDivElement>
+  ) => {
+    if (history.length === 0) {
+      setHoverIndex(null);
+      return;
+    }
+
+    const rect =
+      event.currentTarget.getBoundingClientRect();
+
+    const mouseX =
+      ((event.clientX - rect.left) /
+        rect.width) *
+      500;
+
+    const stepX =
+      500 /
+      (MAX_HISTORY_LENGTH - 1);
+
+    let nearestIndex = 0;
+    let nearestDistance = Infinity;
+
+    history.forEach(
+      (_, index) => {
+        const x =
+          500 -
+          (history.length - 1 - index) *
+            stepX;
+
+        const distance = Math.abs(
+          x - mouseX
+        );
+
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      }
+    );
+
+    setHoverIndex(nearestIndex);
+  };
+
+  const hoveredPoint =
+    hoverIndex !== null
+      ? history[hoverIndex] ?? null
+      : null;
+
+  const hoverXPercent =
+    hoverIndex !== null
+      ? getChartXPercent(hoverIndex)
+      : 0;
+
   return (
     <div style={styles.container}>
       <style>
@@ -907,8 +1021,8 @@ export function Dashboard() {
             backgroundColor:
               toast.type ===
               'success'
-                ? '#10b981'
-                : '#ef4444',
+                ? '#16a34a'
+                : '#dc2626',
           }}
         >
           <span
@@ -936,6 +1050,14 @@ export function Dashboard() {
         <div
           style={{
             ...styles.card,
+            background: getValueGradient(
+              sensorData.temperature,
+              SENSOR_CONFIG.temperature.min,
+              SENSOR_CONFIG.temperature.max,
+              '#fef3c7',
+              '#fbbf24',
+              '#ef4444'
+            ),
             opacity:
               isConnected
                 ? 1
@@ -978,6 +1100,14 @@ export function Dashboard() {
         <div
           style={{
             ...styles.card,
+            background: getValueGradient(
+              sensorData.humidity,
+              SENSOR_CONFIG.humidity.min,
+              SENSOR_CONFIG.humidity.max,
+              '#eff6ff',
+              '#93c5fd',
+              '#2563eb'
+            ),
             opacity:
               isConnected
                 ? 1
@@ -1020,6 +1150,14 @@ export function Dashboard() {
         <div
           style={{
             ...styles.card,
+            background: getValueGradient(
+              sensorData.light,
+              SENSOR_CONFIG.light.min,
+              SENSOR_CONFIG.light.max,
+              '#f0fdf4',
+              '#86efac',
+              '#16a34a'
+            ),
             opacity:
               isConnected
                 ? 1
@@ -1171,6 +1309,12 @@ export function Dashboard() {
               style={
                 styles.chartGridLines
               }
+              onMouseMove={
+                handleChartMouseMove
+              }
+              onMouseLeave={() =>
+                setHoverIndex(null)
+              }
             >
               <div
                 style={{
@@ -1278,79 +1422,87 @@ export function Dashboard() {
                   }
                 />
               </svg>
-            </div>
 
-            <div
-              style={
-                styles.chartXAxis
-              }
-            >
-              {history.length ===
-              0 ? (
-                <span>
-                  Đang chờ dữ liệu...
-                </span>
-              ) : (
-                history.map(
-                  (
-                    item,
-                    idx
-                  ) => {
-                    const showLabel =
-                      idx ===
-                        history.length -
-                          1 ||
-                      idx % 4 ===
-                        0;
+              {hoveredPoint && (
+                <>
+                  <div
+                    style={{
+                      ...styles.hoverGuide,
+                      left: `${hoverXPercent}%`,
+                    }}
+                  />
 
-                    const currentPosPct =
-                      100 -
-                      (
-                        (
-                          history.length -
-                          1 -
-                          idx
-                        ) /
-                        (
-                          MAX_HISTORY_LENGTH -
-                          1
-                        )
-                      ) *
-                        100;
-
-                    return (
+                  <div
+                    style={{
+                      ...styles.chartTooltip,
+                      left: `${hoverXPercent}%`,
+                      transform:
+                        hoverXPercent > 50
+                          ? 'translateX(calc(-100% - 10px))'
+                          : 'translateX(10px)',
+                    }}
+                  >
+                    <div style={styles.tooltipRow}>
                       <span
-                        key={
-                          item.timestamp
-                        }
                         style={{
-                          position:
-                            'absolute',
-
-                          left: `${currentPosPct}%`,
-
-                          transform:
-                            'translateX(-50%)',
-
-                          opacity:
-                            showLabel
-                              ? 1
-                              : 0,
-
-                          whiteSpace:
-                            'nowrap',
-
-                          transition:
-                            'left 0.3s ease-in-out',
+                          ...styles.legendDot,
+                          background:
+                            SENSOR_CONFIG
+                              .temperature
+                              .color,
                         }}
-                      >
-                        {formatChartTime(
-                          item.timestamp
-                        )}
+                      />
+
+                      <span style={styles.tooltipLabel}>
+                        Nhiệt độ
                       </span>
-                    );
-                  }
-                )
+
+                      <span style={styles.tooltipValue}>
+                        {hoveredPoint.temperature} °C
+                      </span>
+                    </div>
+
+                    <div style={styles.tooltipRow}>
+                      <span
+                        style={{
+                          ...styles.legendDot,
+                          background:
+                            SENSOR_CONFIG
+                              .humidity
+                              .color,
+                        }}
+                      />
+
+                      <span style={styles.tooltipLabel}>
+                        Độ ẩm
+                      </span>
+
+                      <span style={styles.tooltipValue}>
+                        {hoveredPoint.humidity} %
+                      </span>
+                    </div>
+
+                    <div style={styles.tooltipRow}>
+                      <span
+                        style={{
+                          ...styles.legendDot,
+                          background:
+                            SENSOR_CONFIG
+                              .light
+                              .color,
+                        }}
+                      />
+
+                      <span style={styles.tooltipLabel}>
+                        Ánh sáng
+                      </span>
+
+                      <span style={styles.tooltipValue}>
+                        {hoveredPoint.light} Lux
+                      </span>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -1532,14 +1684,12 @@ const styles: {
   },
 
   disconnectBanner: {
-    background:
-      'rgba(239, 68, 68, 0.2)',
-    border:
-      '1px solid #ef4444',
+    background: '#fef2f2',
+    border: '1px solid #fecaca',
     borderRadius: '8px',
     padding:
       'clamp(8px, 1vw, 12px) clamp(10px, 1.2vw, 16px)',
-    color: '#fca5a5',
+    color: '#b91c1c',
     fontSize:
       'clamp(11px, 0.85vw, 14px)',
     fontWeight: 600,
@@ -1555,21 +1705,18 @@ const styles: {
     height: '10px',
     minWidth: '10px',
     borderRadius: '50%',
-    backgroundColor: '#ef4444',
+    backgroundColor: '#dc2626',
     display: 'inline-block',
-    animation:
-      'pulse 1.5s infinite',
+    animation: 'pulse 1.5s infinite',
   },
 
   toast: {
     position: 'fixed',
     top: 'clamp(10px, 2vw, 20px)',
     left: '50%',
-    transform:
-      'translateX(-50%)',
+    transform: 'translateX(-50%)',
     zIndex: 9999,
-    maxWidth:
-      'min(90vw, 600px)',
+    maxWidth: 'min(90vw, 600px)',
     padding:
       'clamp(8px, 1vw, 12px) clamp(12px, 2vw, 24px)',
     borderRadius: '8px',
@@ -1578,7 +1725,7 @@ const styles: {
       'clamp(11px, 0.85vw, 14px)',
     fontWeight: 600,
     boxShadow:
-      '0 4px 12px rgba(0,0,0,0.3)',
+      '0 8px 24px rgba(15, 23, 42, 0.16)',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
@@ -1604,20 +1751,17 @@ const styles: {
   },
 
   card: {
-    background:
-      'rgba(255, 255, 255, 0.03)',
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
     boxShadow:
-      'inset 0 0 0 1px rgba(255, 255, 255, 0.08)',
-    backdropFilter:
-      'blur(20px)',
+      '0 2px 8px rgba(15, 23, 42, 0.05)',
     borderRadius: '12px',
     padding:
       'clamp(10px, 1.5vw, 24px)',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
-    transition:
-      'opacity 0.3s ease',
+    transition: 'opacity 0.3s ease',
     minWidth: 0,
     boxSizing: 'border-box',
     overflow: 'hidden',
@@ -1627,15 +1771,12 @@ const styles: {
     fontSize:
       'clamp(9px, 0.75vw, 12px)',
     fontWeight: 700,
-    color: '#a0a7b8',
+    color: '#000000',
     letterSpacing: '0.6px',
-    textTransform:
-      'uppercase',
+    textTransform: 'uppercase',
     overflow: 'hidden',
-    textOverflow:
-      'ellipsis',
-    whiteSpace:
-      'nowrap',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
 
   cardValGroup: {
@@ -1648,24 +1789,21 @@ const styles: {
 
   cardVal: {
     fontSize:
-      'clamp(22px, 2.5vw, 36px)',
+      'clamp(22px, 2.5vw, 30px)',
     fontWeight: 700,
-    color: '#ffffff',
+    color: '#111827',
     overflow: 'hidden',
-    textOverflow:
-      'ellipsis',
-    whiteSpace:
-      'nowrap',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
     minWidth: 0,
   },
 
   cardUnit: {
     fontSize:
       'clamp(12px, 1.4vw, 20px)',
-    color: '#8c91a0',
-    fontWeight: 300,
-    whiteSpace:
-      'nowrap',
+    color: "#000000",
+    fontWeight: 400,
+    whiteSpace: 'nowrap',
     flexShrink: 0,
   },
 
@@ -1682,12 +1820,10 @@ const styles: {
   },
 
   chartCard: {
-    background:
-      'rgba(255, 255, 255, 0.03)',
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
     boxShadow:
-      'inset 0 0 0 1px rgba(255, 255, 255, 0.08)',
-    backdropFilter:
-      'blur(20px)',
+      '0 2px 8px rgba(15, 23, 42, 0.05)',
     borderRadius: '12px',
     padding:
       'clamp(12px, 1.5vw, 24px)',
@@ -1703,8 +1839,7 @@ const styles: {
 
   chartHeader: {
     display: 'flex',
-    justifyContent:
-      'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     gap: '12px',
     flexWrap: 'wrap',
@@ -1717,7 +1852,7 @@ const styles: {
     fontSize:
       'clamp(14px, 1.25vw, 18px)',
     fontWeight: 700,
-    color: '#ffffff',
+    color: '#111827',
     minWidth: 0,
   },
 
@@ -1746,9 +1881,8 @@ const styles: {
   legendText: {
     fontSize:
       'clamp(9px, 0.75vw, 12px)',
-    color: '#a0a7b8',
-    whiteSpace:
-      'nowrap',
+    color: '#6b7280',
+    whiteSpace: 'nowrap',
   },
 
   chartBody: {
@@ -1766,10 +1900,8 @@ const styles: {
     height:
       'clamp(180px, 30vh, 500px)',
     minHeight: 0,
-    borderLeft:
-      '1px solid rgba(255, 255, 255, 0.08)',
-    borderBottom:
-      '1px solid rgba(255, 255, 255, 0.08)',
+    borderLeft: '1px solid #e5e7eb',
+    borderBottom: '1px solid #e5e7eb',
     minWidth: 0,
     overflow: 'hidden',
   },
@@ -1779,8 +1911,7 @@ const styles: {
     left: 0,
     right: 0,
     height: '1px',
-    background:
-      'rgba(255, 255, 255, 0.03)',
+    background: '#f1f5f9',
   },
 
   chartSvg: {
@@ -1791,25 +1922,59 @@ const styles: {
     overflow: 'visible',
   },
 
-  chartXAxis: {
-    position: 'relative',
-    height: '20px',
-    minHeight: '20px',
+  hoverGuide: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 0,
+    borderLeft:
+      '1px dashed #9ca3af',
+    transform: 'translateX(-0.5px)',
+    pointerEvents: 'none',
+    zIndex: 1,
+  },
+
+  chartTooltip: {
+    position: 'absolute',
+    top: '10px',
+    minWidth: '132px',
+    padding: '8px 10px',
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    boxShadow:
+      '0 6px 16px rgba(15, 23, 42, 0.12)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '5px',
+    pointerEvents: 'none',
+    zIndex: 2,
+  },
+
+  tooltipRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
     fontSize:
-      'clamp(8px, 0.65vw, 10px)',
-    color: '#a0a7b8',
-    overflow: 'hidden',
-    minWidth: 0,
-    flexShrink: 0,
+      'clamp(9px, 0.7vw, 12px)',
+    whiteSpace: 'nowrap',
+  },
+
+  tooltipLabel: {
+    color: '#6b7280',
+  },
+
+  tooltipValue: {
+    marginLeft: 'auto',
+    fontWeight: 700,
+    color: '#111827',
   },
 
   controlCard: {
-    background:
-      'rgba(255, 255, 255, 0.03)',
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
     boxShadow:
-      'inset 0 0 0 1px rgba(255, 255, 255, 0.08)',
-    backdropFilter:
-      'blur(20px)',
+      '0 2px 8px rgba(15, 23, 42, 0.05)',
     borderRadius: '12px',
     padding:
       'clamp(12px, 1.5vw, 24px)',
@@ -1833,16 +1998,13 @@ const styles: {
   },
 
   ledRow: {
-    background:
-      'rgba(255, 255, 255, 0.03)',
-    boxShadow:
-      'inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
+    background: '#f8fafc',
+    border: '1px solid #e5e7eb',
     borderRadius: '8px',
     padding:
       'clamp(8px, 1vw, 12px) clamp(8px, 1.2vw, 16px)',
     display: 'flex',
-    justifyContent:
-      'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     gap: '8px',
     minWidth: 0,
@@ -1865,12 +2027,11 @@ const styles: {
       'clamp(28px, 2.5vw, 36px)',
     minWidth: '28px',
     borderRadius: '8px',
-    background:
-      'rgba(255, 255, 255, 0.05)',
+    background: '#f1f5f9',
+    border: '1px solid #e2e8f0',
     display: 'flex',
     alignItems: 'center',
-    justifyContent:
-      'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
 
@@ -1879,20 +2040,17 @@ const styles: {
     height: '10px',
     minWidth: '10px',
     borderRadius: '50%',
-    transition:
-      'all 0.3s ease',
+    transition: 'all 0.3s ease',
   },
 
   ledName: {
     fontSize:
       'clamp(10px, 0.9vw, 14px)',
     fontWeight: 600,
-    color: '#ffffff',
+    color: '#111827',
     overflow: 'hidden',
-    textOverflow:
-      'ellipsis',
-    whiteSpace:
-      'nowrap',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
     minWidth: 0,
   },
 
@@ -1903,8 +2061,7 @@ const styles: {
     padding: '2px 6px',
     borderRadius: '4px',
     flexShrink: 0,
-    whiteSpace:
-      'nowrap',
+    whiteSpace: 'nowrap',
   },
 
   switchBtn: {
@@ -1917,8 +2074,7 @@ const styles: {
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    transition:
-      'background 0.3s ease',
+    transition: 'background 0.3s ease',
     flexShrink: 0,
   },
 
@@ -1927,25 +2083,23 @@ const styles: {
     height: '20px',
     borderRadius: '50%',
     background: '#ffffff',
-    transition:
-      'transform 0.3s ease',
+    boxShadow:
+      '0 1px 3px rgba(15, 23, 42, 0.2)',
+    transition: 'transform 0.3s ease',
     display: 'flex',
     alignItems: 'center',
-    justifyContent:
-      'center',
+    justifyContent: 'center',
   },
 
   spinner: {
     width: '12px',
     height: '12px',
-    border:
-      '2px solid rgba(0, 0, 0, 0.1)',
-    borderTop:
-      '2px solid #0284c7',
+    border: '2px solid #e2e8f0',
+    borderTop: '2px solid #0284c7',
     borderRadius: '50%',
     animation:
       'spin 0.8s linear infinite',
   },
 };
 
-export default Dashboard;
+export default Dashboard; 

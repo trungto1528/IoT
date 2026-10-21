@@ -6,8 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.DirectChannel;
-import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
-import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
+import org.springframework.integration.mqtt.core.Mqttv3ClientManager;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
@@ -15,6 +14,7 @@ import org.springframework.integration.mqtt.support.MqttHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +22,7 @@ import com.iot.back.service.MqttDataHandlerService;
 import com.iot.back.service.MqttResponseBridgeService;
 
 @Configuration
+@EnableScheduling
 public class MqttSubscriberConfig {
 
     // Khai báo tập trung URL của HiveMQ Cloud
@@ -31,7 +32,7 @@ public class MqttSubscriberConfig {
     private MqttDataHandlerService mqttDataHandlerService;
 
     @Autowired
-    private MqttResponseBridgeService mqttResponseBridgeService;    
+    private MqttResponseBridgeService mqttResponseBridgeService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -46,43 +47,44 @@ public class MqttSubscriberConfig {
     }
 
     @Bean
-    public MqttPahoClientFactory mqttClientFactory() {
-        DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
+    public Mqttv3ClientManager mqttClientManager() {
         MqttConnectOptions options = new MqttConnectOptions();
 
-        // CẤU HÌNH BẮT BUỘC: Đặt địa chỉ Broker URL tại đây
         options.setServerURIs(new String[] { BROKER_URL });
-
         options.setUserName("toquangtrung");
         options.setPassword("b23dccn863".toCharArray());
 
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
         options.setConnectionTimeout(10);
+        options.setKeepAliveInterval(30);
 
-        factory.setConnectionOptions(options);
-        return factory;
+        Mqttv3ClientManager clientManager = new Mqttv3ClientManager(
+                options,
+                "spring-backend-client-" + System.currentTimeMillis());
+
+        // Chờ tối đa 10 giây cho mỗi lần kết nối
+        clientManager.setCompletionTimeout(10_000L);
+
+        // Cho client manager khởi động trước adapter/handler
+        clientManager.setPhase(-1);
+
+        return clientManager;
     }
 
     @Bean
     @ServiceActivator(inputChannel = "mqttOutboundChannel")
-    public MessageHandler mqttOutbound() {
-        MqttPahoMessageHandler messageHandler = new MqttPahoMessageHandler(
-                "spring-backend-publisher" + System.currentTimeMillis(), 
-                mqttClientFactory()
-        );
+    public MessageHandler mqttOutbound(Mqttv3ClientManager mqttClientManager) {
+        MqttPahoMessageHandler messageHandler = new MqttPahoMessageHandler(mqttClientManager);
         messageHandler.setAsync(true);
         messageHandler.setDefaultTopic("control");
         return messageHandler;
     }
 
     @Bean
-    public MqttPahoMessageDrivenChannelAdapter inbound() {
-        // Tái sử dụng BROKER_URL đã khai báo
+    public MqttPahoMessageDrivenChannelAdapter inbound(Mqttv3ClientManager mqttClientManager) {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
-                BROKER_URL,
-                "spring-backend-client-" + System.currentTimeMillis(),
-                mqttClientFactory(),
+                mqttClientManager,
                 "sensor_data", "response");
 
         adapter.setCompletionTimeout(5000);
@@ -94,25 +96,25 @@ public class MqttSubscriberConfig {
 
     @ServiceActivator(inputChannel = "mqttInputChannel")
     public void handleMessage(Message<String> message) {
-        
-    String payload = message.getPayload();
 
-    String topic = (String) message.getHeaders()
-            .get(MqttHeaders.RECEIVED_TOPIC);
+        String payload = message.getPayload();
 
-    System.out.println(
-            "[MQTT RECEIVE] topic=[" + topic + "] payload=[" + payload + "]");
+        String topic = (String) message.getHeaders()
+                .get(MqttHeaders.RECEIVED_TOPIC);
 
-    if (topic == null) {
-        return;
-    }
+        System.out.println(
+                "[MQTT RECEIVE] topic=[" + topic + "] payload=[" + payload + "]");
 
-    if ("response".equals(topic)) {
+        if (topic == null) {
+            return;
+        }
 
-        mqttResponseBridgeService.onResponseReceived(payload);
+        if ("response".equals(topic)) {
 
-        return;
-    }
+            mqttResponseBridgeService.onResponseReceived(payload);
+
+            return;
+        }
 
         // 2. Nếu tin nhắn từ topic "sensor_data" -> Xử lý dữ liệu cảm biến
         if ("sensor_data".equals(topic)) {

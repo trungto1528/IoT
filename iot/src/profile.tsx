@@ -1,25 +1,108 @@
-import React from 'react';
-
-const COLORS = {
-  cardBg: 'rgba(255, 255, 255, 0.03)',
-  cardBorder: 'rgba(255, 255, 255, 0.1)',
-  textSubtle: '#c2c6d6',
-  textPrimary: '#dae2fd',
-};
-
-const RESOURCE_LINKS = [
-  { label: 'GitHub', url: 'https://github.com/trungto1528/IoT' },
-  {
-    label: 'Postman',
-    url: 'https://toquangtrung2510-2949482.postman.co/workspace/Default-workspace~dc498567-9ee6-4a77-9253-63fe99636a35/collection/49928453-50eea0a6-27f0-4f92-984a-b8eef075c8e7?action=share&creator=49928453',
-  },
-  { label: 'Figma', url: 'https://www.figma.com/site/N2Sg8smyFsJmTT43LPS0uR/Untitled?node-id=2-588&t=CBHmJ8Ut7V4J7yHb-1' },
-  {label: 'Tài liệu', url: "Tai_lieu_IoT.pdf"}
-];
-
+import React, { useEffect, useState } from 'react';
 import avatarImage from './assets/AT.jpg';
 
+const COLORS = {
+  cardBg: '#ffffff',
+  cardBorder: '#e5e7eb',
+  textSubtle: '#6b7280',
+  textPrimary: '#111827',
+  accent: '#16a34a',
+};
+
+interface ProfileData {
+  username?: string | null;
+  display_name?: string | null;
+  msv?: string | null;
+  class?: string | null;
+  github?: string | null;
+  figma?: string | null;
+  postman?: string | null;
+}
+
+interface ResourceLink {
+  label: string;
+  url: string;
+}
+
+const API_BASE_URL = 'http://localhost:8080/api';
+const DOCUMENT_LINK = 'Tai_lieu_IoT.pdf';
+
 export function Profile() {
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+
+    if (!storedUser) {
+      setError('Không tìm thấy thông tin đăng nhập.');
+      setLoading(false);
+      return;
+    }
+
+    let user: { id?: number } | null = null;
+
+    try {
+      user = JSON.parse(storedUser);
+    } catch (parseError) {
+      console.error('Invalid stored user:', parseError);
+    }
+
+    if (!user?.id) {
+      setError('Không tìm thấy thông tin đăng nhập.');
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch(`${API_BASE_URL}/profile?id=${user.id}`, {
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Unable to load profile');
+        }
+
+        return response.json();
+      })
+      .then((data: ProfileData) => setProfile(data))
+      .catch((fetchError) => {
+        if (
+          fetchError instanceof DOMException &&
+          fetchError.name === 'AbortError'
+        ) {
+          return;
+        }
+
+        console.error('Failed to load profile:', fetchError);
+        setError('Không thể tải thông tin cá nhân từ máy chủ.');
+      })
+      .finally(() => setLoading(false));
+
+    return () => controller.abort();
+  }, []);
+
+  const username = profile?.username || '';
+  const displayName =
+    profile?.display_name || profile?.username || 'Người dùng';
+  const msv = profile?.msv || 'Chưa cập nhật';
+  const className = profile?.class || 'Chưa cập nhật';
+
+  const resourceLinks: ResourceLink[] = [
+    profile?.github
+      ? { label: 'GitHub', url: profile.github }
+      : null,
+    profile?.postman
+      ? { label: 'Postman', url: profile.postman }
+      : null,
+    profile?.figma
+      ? { label: 'Figma', url: profile.figma }
+      : null,
+    { label: 'Tài liệu', url: DOCUMENT_LINK },
+  ].filter((link): link is ResourceLink => Boolean(link?.url));
+
   return (
     <div style={styles.container}>
       <h2 style={styles.pageTitle}>Profile</h2>
@@ -27,13 +110,26 @@ export function Profile() {
       <div style={styles.card}>
         <div style={styles.decorativeGlow} />
 
-        <div style={styles.contentGrid}>
-          <div style={styles.userSection}>
+        {loading || error ? (
+          <div style={styles.statusBox}>
+            {loading ? 'Đang tải thông tin...' : error}
+          </div>
+        ) : (
+          <div style={styles.contentGrid}>
+            <div style={styles.userSection}>
             <div style={styles.avatar}>
               {avatarImage ? (
-                <img src={avatarImage} alt="Tô Quang Trung" style={styles.avatarImage} />
+                <img
+                  src={avatarImage}
+                  alt={displayName}
+                  style={styles.avatarImage}
+                />
               ) : (
-                <svg viewBox="0 0 24 24" aria-hidden="true" style={styles.avatarFallback}>
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  style={styles.avatarFallback}
+                >
                   <path
                     fill="currentColor"
                     d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.24-8 5v3h16v-3c0-2.76-3.58-5-8-5Z"
@@ -41,37 +137,51 @@ export function Profile() {
                 </svg>
               )}
             </div>
+
             <div style={styles.identity}>
-              <span style={styles.name}>Tô Quang Trung</span>
-              <span style={styles.identityMeta}>MSV: B23DCCN863</span>
-              <span style={styles.identityMeta}>Lớp: D23CNPM04</span>
+              <span style={styles.name}>{displayName}</span>
+              {username && (
+                <span style={styles.identityMeta}>@{username}</span>
+              )}
+              <span style={styles.identityMeta}>MSV: {msv}</span>
+              <span style={styles.identityMeta}>Lớp: {className}</span>
             </div>
           </div>
 
           <div style={styles.details}>
-            {RESOURCE_LINKS.map((link, index) => (
+            {resourceLinks.map((link, index) => (
               <React.Fragment key={link.label}>
                 <div style={styles.detailItem}>
                   <span style={styles.label}>{link.label}</span>
+
                   <a
                     href={link.url}
                     target="_blank"
                     rel="noreferrer"
                     style={styles.value}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.textDecoration = 'underline';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.textDecoration = 'none';
+                    }}
                   >
                     {link.url}
                   </a>
                 </div>
-                {index < RESOURCE_LINKS.length - 1 && <hr style={styles.divider} />}
+
+                {index < resourceLinks.length - 1 && (
+                  <hr style={styles.divider} />
+                )}
               </React.Fragment>
             ))}
           </div>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     display: 'flex',
@@ -85,6 +195,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     overflow: 'hidden',
     boxSizing: 'border-box',
   },
+
   pageTitle: {
     color: COLORS.textPrimary,
     fontSize: 'clamp(22px, 2.5vw, 32px)',
@@ -93,20 +204,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     textAlign: 'center',
     flexShrink: 0,
   },
+
   card: {
     width: 'min(100%, 820px)',
     minWidth: 0,
     background: COLORS.cardBg,
-    boxShadow: `inset 0 0 0 1px ${COLORS.cardBorder}, 0 25px 50px -12px rgba(0, 0, 0, 0.25)`,
+    border: `1px solid ${COLORS.cardBorder}`,
+    boxShadow: '0 2px 10px rgba(15, 23, 42, 0.06)',
     borderRadius: 'clamp(8px, 1vw, 12px)',
-    backdropFilter: 'blur(24px)',
     padding: 'clamp(16px, 3vw, 32px)',
     position: 'relative',
     overflow: 'hidden',
     boxSizing: 'border-box',
   },
+
   decorativeGlow: {
-    background: 'rgba(173, 198, 255, 0.1)',
+    background: 'rgba(22, 163, 74, 0.06)',
     borderRadius: '50%',
     filter: 'blur(64px)',
     position: 'absolute',
@@ -116,6 +229,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     height: 'clamp(160px, 20vw, 256px)',
     pointerEvents: 'none',
   },
+
+  statusBox: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '160px',
+    padding: 'clamp(16px, 3vw, 32px)',
+    color: COLORS.textSubtle,
+    fontSize: 'clamp(12px, 1.2vw, 15px)',
+    textAlign: 'center',
+    position: 'relative',
+  },
+
   contentGrid: {
     display: 'grid',
     gridTemplateColumns: 'clamp(90px, 18vw, 160px) minmax(0, 1fr)',
@@ -124,6 +250,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     minWidth: 0,
     position: 'relative',
   },
+
   userSection: {
     display: 'flex',
     flexDirection: 'column',
@@ -131,6 +258,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: 'clamp(8px, 1.5vw, 16px)',
     minWidth: 0,
   },
+
   avatar: {
     width: 'clamp(72px, 12vw, 128px)',
     height: 'clamp(72px, 12vw, 128px)',
@@ -140,11 +268,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexShrink: 0,
     borderRadius: '50%',
     overflow: 'hidden',
-    background: 'rgba(148, 163, 184, 0.12)',
-    color: '#94a3b8',
+    background: '#f1f5f9',
+    color: '#64748b',
+    border: '1px solid #e2e8f0',
   },
-  avatarFallback: { width: '70%', height: '70%' },
-  avatarImage: { width: '100%', height: '100%', objectFit: 'cover' },
+
+  avatarFallback: {
+    width: '70%',
+    height: '70%',
+  },
+
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+
   identity: {
     display: 'flex',
     flexDirection: 'column',
@@ -152,6 +291,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '2px',
     minWidth: 0,
   },
+
   name: {
     color: COLORS.textPrimary,
     fontSize: 'clamp(13px, 1.5vw, 20px)',
@@ -163,6 +303,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+
   identityMeta: {
     color: COLORS.textSubtle,
     fontSize: 'clamp(10px, 1vw, 13px)',
@@ -170,12 +311,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1.35,
     whiteSpace: 'nowrap',
   },
+
   details: {
     display: 'flex',
     flexDirection: 'column',
     gap: 'clamp(12px, 1.5vw, 18px)',
     minWidth: 0,
   },
+
   detailItem: {
     display: 'flex',
     alignItems: 'baseline',
@@ -183,24 +326,30 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: 'clamp(12px, 2vw, 24px)',
     minWidth: 0,
   },
+
   label: {
     color: COLORS.textSubtle,
     fontSize: 'clamp(10px, 0.8vw, 12px)',
+    fontWeight: 500,
     flexShrink: 0,
   },
+
   value: {
-    color: COLORS.textPrimary,
+    color: COLORS.accent,
     fontSize: 'clamp(11px, 1vw, 16px)',
     fontFamily: "'JetBrains Mono', monospace",
+    fontWeight: 500,
     minWidth: 0,
     marginLeft: 'auto',
     textAlign: 'right',
     overflowWrap: 'anywhere',
     textDecoration: 'none',
+    transition: 'color 0.15s ease',
   },
+
   divider: {
     border: 'none',
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+    borderTop: `1px solid ${COLORS.cardBorder}`,
     margin: 0,
     width: '100%',
   },

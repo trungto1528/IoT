@@ -92,22 +92,22 @@ public class SensorDataController {
                 }
             }
 
-            if ("time".equals(field)) {
-                pageSort = Sort.by(
-                        direction,
-                        "time"
-                ).and(
-                        Sort.by(
-                                direction,
-                                "id"
-                        )
-                );
-            } else if ("id".equals(field)) {
-                pageSort =
-                        Sort.by(
-                                direction,
-                                "id"
-                        );
+            String property = switch (field) {
+                case "stt", "id" -> "id";
+                case "typeName", "type", "sensor.type" -> "sensor.type";
+                case "rawValue", "value" -> "value";
+                case "timestamp", "time" -> "time";
+                default -> null;
+            };
+
+            if (property != null) {
+                pageSort = Sort.by(direction, property);
+
+                if (!"id".equals(property)) {
+                    pageSort = pageSort.and(
+                            Sort.by(direction, "id")
+                    );
+                }
             }
         }
 

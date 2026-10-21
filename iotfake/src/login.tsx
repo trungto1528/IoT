@@ -9,8 +9,6 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -59,15 +57,9 @@ export function LoginPage() {
      * Đăng ký vẫn chỉ dùng mock local,
      * không cần backend.
      */
-    if (
-      !displayName.trim() ||
-      !email.trim() ||
-      !username.trim() ||
-      !password ||
-      !confirmPassword
-    ) {
+    if (!username.trim() || !password || !confirmPassword) {
       setErrorMsg(
-        'Vui lòng điền đầy đủ tất cả các trường.'
+        'Vui lòng nhập Username, Password và xác nhận mật khẩu.'
       );
       return;
     }
@@ -280,7 +272,7 @@ export function LoginPage() {
             <p style={styles.formSubtitle}>
               {isLogin
                 ? 'Nhập thông tin tài khoản của bạn để tiếp tục'
-                : 'Điền đầy đủ các thông tin bên dưới'}
+                : 'Nhập username và mật khẩu để tạo tài khoản'}
             </p>
           </div>
 
@@ -300,82 +292,6 @@ export function LoginPage() {
             onSubmit={handleSubmit}
             style={styles.formGroup}
           >
-            {!isLogin && (
-              <>
-                {/* Display name */}
-                <div style={styles.inputWrapper}>
-                  <label style={styles.label}>
-                    DISPLAY NAME
-                  </label>
-
-                  <div style={styles.inputContainer}>
-                    <span style={styles.inputIcon}>
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#6b7280"
-                        strokeWidth="2"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle
-                          cx="12"
-                          cy="7"
-                          r="4"
-                        />
-                      </svg>
-                    </span>
-
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) =>
-                        setDisplayName(e.target.value)
-                      }
-                      style={styles.input}
-                      placeholder="Nhập tên hiển thị"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div style={styles.inputWrapper}>
-                  <label style={styles.label}>
-                    EMAIL
-                  </label>
-
-                  <div style={styles.inputContainer}>
-                    <span style={styles.inputIcon}>
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#6b7280"
-                        strokeWidth="2"
-                      >
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                        <polyline points="22,6 12,13 2,6" />
-                      </svg>
-                    </span>
-
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) =>
-                        setEmail(e.target.value)
-                      }
-                      style={styles.input}
-                      placeholder="name@example.com"
-                      required
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
             {/* Username */}
             <div style={styles.inputWrapper}>
               <label style={styles.label}>

@@ -99,17 +99,52 @@ export function MainLayout() {
 
                 <span>Activity History</span>
               </button>
-            </nav>
-          </div>
+              </nav>
+              </div>
 
-          <div style={styles.sidebarBottom}>
-            {SHOW_ADD_DEVICE && (
+              <div style={styles.sidebarBottom}> 
+              {SHOW_ADD_DEVICE && (
+                <button
+                  onClick={() => navigate('/add-device')}
+                  style={{
+                    ...styles.addDeviceBtn,
+                    ...(isActive('/add-device')
+                      ? styles.addDeviceBtnActive
+                      : {}),
+                  }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <line
+                      x1="12"
+                      y1="5"
+                      x2="12"
+                      y2="19"
+                    />
+                    <line
+                      x1="5"
+                      y1="12"
+                      x2="19"
+                      y2="12"
+                    />
+                  </svg>
+
+                  <span>Add Device</span>
+                </button>
+              )}
+
               <button
-                onClick={() => navigate('/add-device')}
+                onClick={() => navigate('/profile')}
                 style={{
-                  ...styles.addDeviceBtn,
-                  ...(isActive('/add-device')
-                    ? styles.addDeviceBtnActive
+                  ...styles.navBtn,
+                  ...(isActive('/profile')
+                    ? styles.navBtnActive
                     : {}),
                 }}
               >
@@ -121,67 +156,33 @@ export function MainLayout() {
                   stroke="currentColor"
                   strokeWidth="2"
                 >
-                  <line
-                    x1="12"
-                    y1="5"
-                    x2="12"
-                    y2="19"
-                  />
-                  <line
-                    x1="5"
-                    y1="12"
-                    x2="19"
-                    y2="12"
-                  />
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
                 </svg>
 
-                <span>Add Device</span>
+                <span>Profile</span>
               </button>
-            )}
 
-            <button
-              onClick={() => navigate('/profile')}
-              style={{
-                ...styles.navBtn,
-                ...(isActive('/profile')
-                  ? styles.navBtnActive
-                  : {}),
-              }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+              <button
+                onClick={handleLogout}
+                style={styles.logoutBtn}
               >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
 
-              <span>Profile</span>
-            </button>
-
-            <button
-              onClick={handleLogout}
-              style={styles.logoutBtn}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-
-              <span>Logout</span>
-            </button>
+                <span>Logout</span>
+              </button>
+            {/* </nav> */}
           </div>
         </aside>
 
@@ -201,19 +202,30 @@ const styles: {
     height: '100vh',
     minWidth: 0,
     minHeight: 0,
-    backgroundColor: '#060b17',
+
+    backgroundColor: '#f5f7fb',
+
     fontFamily: "'Inter', system-ui, sans-serif",
+
     position: 'relative',
-    color: '#dae2fd',
+
+    color: '#111827',
+
     overflow: 'hidden',
     boxSizing: 'border-box',
   },
 
+  /*
+   * Nền sáng cố định.
+   * Không còn gradient tối / overlay tối.
+   */
   bgOverlay: {
     position: 'absolute',
     inset: 0,
+
     background:
-      'linear-gradient(168deg, #0b1326 -21%, rgba(11, 19, 38, 0.9) 50%, #060e20 120%)',
+      'linear-gradient(168deg, #ffffff 0%, #f8fafc 50%, #f5f7fb 100%)',
+
     zIndex: 1,
     pointerEvents: 'none',
   },
@@ -240,10 +252,14 @@ const styles: {
     minWidth: 0,
     minHeight: 0,
 
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRight:
-      '1px solid rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(20px)',
+    background: '#ffffff',
+
+    borderRight: '1px solid #e5e7eb',
+
+    boxShadow:
+      '2px 0 8px rgba(15, 23, 42, 0.04)',
+
+    backdropFilter: 'none',
 
     padding:
       'clamp(16px, 2.5vw, 32px) clamp(10px, 1.5vw, 20px)',
@@ -270,7 +286,9 @@ const styles: {
     lineHeight: 1.2,
 
     fontWeight: 700,
-    color: '#38bdf8',
+
+    color: '#16a34a',
+
     letterSpacing: '-0.3px',
 
     whiteSpace: 'nowrap',
@@ -299,9 +317,11 @@ const styles: {
 
     borderRadius: '8px',
     border: 'none',
+
     background: 'transparent',
 
-    color: '#8c91a0',
+    color: '#6b7280',
+
     fontSize: 'clamp(11px, 0.9vw, 14px)',
     fontWeight: 500,
 
@@ -314,11 +334,12 @@ const styles: {
   },
 
   navBtnActive: {
-    background:
-      'rgba(56, 189, 248, 0.15)',
-    color: '#38bdf8',
+    background: '#ecfdf5',
+
+    color: '#16a34a',
+
     boxShadow:
-      'inset 0 0 0 1px rgba(56, 189, 248, 0.3)',
+      'inset 0 0 0 1px #bbf7d0',
   },
 
   sidebarBottom: {
@@ -343,16 +364,15 @@ const styles: {
 
     borderRadius: '8px',
 
-    border:
-      '1px solid rgba(56, 189, 248, 0.4)',
+    border: '1px solid #bbf7d0',
 
-    background:
-      'rgba(56, 189, 248, 0.08)',
+    background: '#f0fdf4',
 
     boxShadow:
-      '0 0 12px rgba(56, 189, 248, 0.1)',
+      '0 2px 6px rgba(22, 163, 74, 0.08)',
 
-    color: '#38bdf8',
+    color: '#16a34a',
+
     fontSize: 'clamp(11px, 0.9vw, 14px)',
     fontWeight: 600,
 
@@ -365,11 +385,12 @@ const styles: {
   },
 
   addDeviceBtnActive: {
-    background:
-      'rgba(56, 189, 248, 0.25)',
+    background: '#dcfce7',
+
+    borderColor: '#86efac',
 
     boxShadow:
-      '0 0 16px rgba(56, 189, 248, 0.25)',
+      '0 2px 8px rgba(22, 163, 74, 0.12)',
   },
 
   logoutBtn: {
@@ -384,7 +405,8 @@ const styles: {
     background: 'transparent',
     border: 'none',
 
-    color: '#8c91a0',
+    color: '#6b7280',
+
     fontSize: 'clamp(11px, 0.9vw, 14px)',
     fontWeight: 500,
 
@@ -397,6 +419,8 @@ const styles: {
 
     textAlign: 'left',
     boxSizing: 'border-box',
+
+    transition: 'all 0.2s ease',
   },
 
   mainContent: {
@@ -422,3 +446,5 @@ const styles: {
     boxSizing: 'border-box',
   },
 };
+
+export default MainLayout;

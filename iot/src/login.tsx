@@ -9,8 +9,6 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -49,10 +47,7 @@ export function LoginPage() {
             );
           }
 
-          localStorage.setItem(
-            'isLoggedIn',
-            'true'
-          );
+          localStorage.setItem('isLoggedIn', 'true');
 
           navigate('/dashboard');
         } else {
@@ -69,15 +64,9 @@ export function LoginPage() {
         setLoading(false);
       }
     } else {
-      if (
-        !displayName.trim() ||
-        !email.trim() ||
-        !username.trim() ||
-        !password ||
-        !confirmPassword
-      ) {
+      if (!username.trim() || !password || !confirmPassword) {
         setErrorMsg(
-          'Vui lòng điền đầy đủ tất cả các trường.'
+          'Vui lòng nhập Username, Password và xác nhận mật khẩu.'
         );
         return;
       }
@@ -100,8 +89,6 @@ export function LoginPage() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              display_name: displayName,
-              email,
               username,
               password,
             }),
@@ -112,11 +99,9 @@ export function LoginPage() {
 
         if (
           response.ok &&
-          (
-            response.status === 201 ||
+          (response.status === 201 ||
             response.status === 200 ||
-            data.success === 1
-          )
+            data.success === 1)
         ) {
           setSuccessMsg(
             data.message ||
@@ -129,7 +114,7 @@ export function LoginPage() {
         } else {
           setErrorMsg(
             data.message ||
-              'Đăng ký thất bại. Tên tài khoản hoặc email có thể đã tồn tại.'
+              'Đăng ký thất bại. Tên tài khoản có thể đã tồn tại.'
           );
         }
       } catch (err) {
@@ -141,7 +126,6 @@ export function LoginPage() {
       }
     }
   };
-
   return (
     <div style={styles.root}>
       <style>
@@ -160,7 +144,7 @@ export function LoginPage() {
               min-height: 150px !important;
               flex: none !important;
               border-right: none !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+              border-bottom: 1px solid #e5e7eb !important;
             }
 
             .banner-body {
@@ -192,12 +176,16 @@ export function LoginPage() {
           }
 
           input:focus {
-            border-color: #adc6ff !important;
-            box-shadow: 0 0 0 2px rgba(173, 198, 255, 0.2) !important;
+            border-color: #16a34a !important;
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12) !important;
+          }
+
+          input::placeholder {
+            color: #9ca3af !important;
           }
 
           .submit-btn:hover:not(:disabled) {
-            background-color: #c6d9ff !important;
+            background-color: #15803d !important;
             transform: translateY(-1px);
           }
 
@@ -208,6 +196,10 @@ export function LoginPage() {
           .submit-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+          }
+
+          .tab-btn:hover {
+            color: #16a34a !important;
           }
         `}
       </style>
@@ -220,6 +212,7 @@ export function LoginPage() {
         className="split-card"
         style={styles.splitCard}
       >
+        {/* Banner */}
         <div
           className="banner-section"
           style={styles.bannerSection}
@@ -233,7 +226,7 @@ export function LoginPage() {
                 height="28"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#adc6ff"
+                stroke="#16a34a"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -270,6 +263,7 @@ export function LoginPage() {
           <div style={styles.bannerFooter} />
         </div>
 
+        {/* Form */}
         <div
           className="form-section"
           style={styles.formSection}
@@ -277,11 +271,10 @@ export function LoginPage() {
           <div style={styles.tabContainer}>
             <button
               type="button"
+              className="tab-btn"
               style={{
                 ...styles.tabBtn,
-                ...(isLogin
-                  ? styles.activeTab
-                  : {}),
+                ...(isLogin ? styles.activeTab : {}),
               }}
               onClick={() => {
                 setIsLogin(true);
@@ -294,11 +287,10 @@ export function LoginPage() {
 
             <button
               type="button"
+              className="tab-btn"
               style={{
                 ...styles.tabBtn,
-                ...(!isLogin
-                  ? styles.activeTab
-                  : {}),
+                ...(!isLogin ? styles.activeTab : {}),
               }}
               onClick={() => {
                 setIsLogin(false);
@@ -312,15 +304,13 @@ export function LoginPage() {
 
           <div style={styles.formHeader}>
             <h2 style={styles.formTitle}>
-              {isLogin
-                ? 'Đăng nhập'
-                : 'Tạo tài khoản'}
+              {isLogin ? 'Đăng nhập' : 'Tạo tài khoản'}
             </h2>
 
             <p style={styles.formSubtitle}>
               {isLogin
                 ? 'Nhập thông tin tài khoản của bạn để tiếp tục'
-                : 'Điền đầy đủ các thông tin bên dưới'}
+                : 'Nhập username và mật khẩu để tạo tài khoản'}
             </p>
           </div>
 
@@ -340,84 +330,7 @@ export function LoginPage() {
             onSubmit={handleSubmit}
             style={styles.formGroup}
           >
-            {!isLogin && (
-              <>
-                <div style={styles.inputWrapper}>
-                  <label style={styles.label}>
-                    DISPLAY NAME
-                  </label>
-
-                  <div style={styles.inputContainer}>
-                    <span style={styles.inputIcon}>
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#c2c6d6"
-                        strokeWidth="2"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle
-                          cx="12"
-                          cy="7"
-                          r="4"
-                        />
-                      </svg>
-                    </span>
-
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) =>
-                        setDisplayName(
-                          e.target.value
-                        )
-                      }
-                      style={styles.input}
-                      placeholder="Nhập tên hiển thị"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.inputWrapper}>
-                  <label style={styles.label}>
-                    EMAIL
-                  </label>
-
-                  <div style={styles.inputContainer}>
-                    <span style={styles.inputIcon}>
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#c2c6d6"
-                        strokeWidth="2"
-                      >
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                        <polyline points="22,6 12,13 2,6" />
-                      </svg>
-                    </span>
-
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) =>
-                        setEmail(
-                          e.target.value
-                        )
-                      }
-                      style={styles.input}
-                      placeholder="name@example.com"
-                      required
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
+            {/* Username */}
             <div style={styles.inputWrapper}>
               <label style={styles.label}>
                 USERNAME
@@ -430,7 +343,7 @@ export function LoginPage() {
                     height="18"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#c2c6d6"
+                    stroke="#6b7280"
                     strokeWidth="2"
                   >
                     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -458,9 +371,7 @@ export function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) =>
-                    setUsername(
-                      e.target.value
-                    )
+                    setUsername(e.target.value)
                   }
                   style={styles.input}
                   placeholder="Nhập username"
@@ -470,6 +381,7 @@ export function LoginPage() {
               </div>
             </div>
 
+            {/* Password */}
             <div style={styles.inputWrapper}>
               <label style={styles.label}>
                 PASSWORD
@@ -482,7 +394,7 @@ export function LoginPage() {
                     height="18"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#c2c6d6"
+                    stroke="#6b7280"
                     strokeWidth="2"
                   >
                     <rect
@@ -501,9 +413,7 @@ export function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) =>
-                    setPassword(
-                      e.target.value
-                    )
+                    setPassword(e.target.value)
                   }
                   style={styles.input}
                   placeholder="••••••••"
@@ -517,6 +427,7 @@ export function LoginPage() {
               </div>
             </div>
 
+            {/* Confirm password */}
             {!isLogin && (
               <div style={styles.inputWrapper}>
                 <label style={styles.label}>
@@ -530,7 +441,7 @@ export function LoginPage() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#c2c6d6"
+                      stroke="#6b7280"
                       strokeWidth="2"
                     >
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -541,9 +452,7 @@ export function LoginPage() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) =>
-                      setConfirmPassword(
-                        e.target.value
-                      )
+                      setConfirmPassword(e.target.value)
                     }
                     style={styles.input}
                     placeholder="Xác nhận lại mật khẩu"
@@ -554,6 +463,7 @@ export function LoginPage() {
               </div>
             )}
 
+            {/* Submit */}
             <button
               type="submit"
               className="submit-btn"
@@ -574,7 +484,7 @@ export function LoginPage() {
                   height="17"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#002e6a"
+                  stroke="#ffffff"
                   strokeWidth="2.5"
                 >
                   <line
@@ -608,7 +518,7 @@ const styles: {
     alignItems: 'center',
     justifyContent: 'center',
 
-    backgroundColor: '#0b1326',
+    backgroundColor: '#f5f7fb',
 
     fontFamily:
       "'Inter', system-ui, -apple-system, sans-serif",
@@ -618,8 +528,7 @@ const styles: {
 
     boxSizing: 'border-box',
 
-    padding:
-      'clamp(12px, 3vw, 24px)',
+    padding: 'clamp(12px, 3vw, 24px)',
   },
 
   bgOverlay: {
@@ -627,7 +536,7 @@ const styles: {
     inset: 0,
 
     background:
-      'linear-gradient(168deg, #0b1326 -21%, rgba(11, 19, 38, 0.95) 50%, #060e20 120%)',
+      'linear-gradient(168deg, #ffffff 0%, #f8fafc 50%, #f5f7fb 100%)',
 
     zIndex: 0,
     pointerEvents: 'none',
@@ -636,22 +545,16 @@ const styles: {
   glowTop: {
     position: 'absolute',
 
-    width:
-      'clamp(300px, 45vw, 600px)',
+    width: 'clamp(300px, 45vw, 600px)',
+    height: 'clamp(300px, 45vw, 600px)',
 
-    height:
-      'clamp(300px, 45vw, 600px)',
-
-    top:
-      'clamp(-250px, -20vw, -120px)',
-
-    right:
-      'clamp(-150px, -12vw, -60px)',
+    top: 'clamp(-250px, -20vw, -120px)',
+    right: 'clamp(-150px, -12vw, -60px)',
 
     borderRadius: '50%',
 
     background:
-      'radial-gradient(circle, rgba(92, 139, 255, 0.12) 0%, rgba(92, 139, 255, 0) 70%)',
+      'radial-gradient(circle, rgba(22, 163, 74, 0.08) 0%, rgba(22, 163, 74, 0) 70%)',
 
     zIndex: 0,
     pointerEvents: 'none',
@@ -660,22 +563,16 @@ const styles: {
   glowBottom: {
     position: 'absolute',
 
-    width:
-      'clamp(280px, 42vw, 550px)',
+    width: 'clamp(280px, 42vw, 550px)',
+    height: 'clamp(280px, 42vw, 550px)',
 
-    height:
-      'clamp(280px, 42vw, 550px)',
-
-    bottom:
-      'clamp(-250px, -20vw, -120px)',
-
-    left:
-      'clamp(-150px, -12vw, -60px)',
+    bottom: 'clamp(-250px, -20vw, -120px)',
+    left: 'clamp(-150px, -12vw, -60px)',
 
     borderRadius: '50%',
 
     background:
-      'radial-gradient(circle, rgba(70, 120, 255, 0.1) 0%, rgba(70, 120, 255, 0) 70%)',
+      'radial-gradient(circle, rgba(22, 163, 74, 0.05) 0%, rgba(22, 163, 74, 0) 70%)',
 
     zIndex: 0,
     pointerEvents: 'none',
@@ -687,24 +584,20 @@ const styles: {
 
     width: 'min(100%, 860px)',
 
-    maxHeight:
-      'min(90vh, 720px)',
+    maxHeight: 'min(90vh, 720px)',
 
     minWidth: 0,
 
     overflow: 'hidden',
 
-    background:
-      'rgba(255, 255, 255, 0.07)',
+    background: '#ffffff',
+
+    border: '1px solid #e5e7eb',
 
     boxShadow:
-      'inset 0 0 0 1px rgba(255, 255, 255, 0.15), 0px 24px 70px rgba(0, 0, 0, 0.65)',
+      '0 20px 50px rgba(15, 23, 42, 0.08)',
 
-    backdropFilter: 'blur(24px)',
-    WebkitBackdropFilter: 'blur(24px)',
-
-    borderRadius:
-      'clamp(12px, 1.5vw, 16px)',
+    borderRadius: 'clamp(12px, 1.5vw, 16px)',
 
     display: 'flex',
     flexDirection: 'row',
@@ -725,10 +618,9 @@ const styles: {
       'clamp(24px, 4vw, 40px) clamp(20px, 3.5vw, 36px)',
 
     background:
-      'linear-gradient(135deg, rgba(20, 35, 70, 0.6) 0%, rgba(10, 20, 45, 0.8) 100%)',
+      'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
 
-    borderRight:
-      '1px solid rgba(255, 255, 255, 0.1)',
+    borderRight: '1px solid #e5e7eb',
 
     display: 'flex',
     flexDirection: 'column',
@@ -744,7 +636,7 @@ const styles: {
     inset: 0,
 
     background:
-      'radial-gradient(circle at top left, rgba(173, 198, 255, 0.15), transparent 60%)',
+      'radial-gradient(circle at top left, rgba(22, 163, 74, 0.08), transparent 60%)',
 
     pointerEvents: 'none',
   },
@@ -753,29 +645,23 @@ const styles: {
     display: 'flex',
     alignItems: 'center',
 
-    gap:
-      'clamp(8px, 1vw, 12px)',
+    gap: 'clamp(8px, 1vw, 12px)',
 
     position: 'relative',
     zIndex: 2,
   },
 
   logoIcon: {
-    width:
-      'clamp(38px, 4vw, 44px)',
-
-    height:
-      'clamp(38px, 4vw, 44px)',
+    width: 'clamp(38px, 4vw, 44px)',
+    height: 'clamp(38px, 4vw, 44px)',
 
     flexShrink: 0,
 
     borderRadius: '10px',
 
-    background:
-      'rgba(173, 198, 255, 0.12)',
+    background: '#dcfce7',
 
-    boxShadow:
-      'inset 0 0 0 1px rgba(173, 198, 255, 0.25)',
+    border: '1px solid #bbf7d0',
 
     display: 'flex',
     alignItems: 'center',
@@ -786,8 +672,7 @@ const styles: {
     position: 'relative',
     zIndex: 2,
 
-    margin:
-      'clamp(18px, 3vw, 32px) 0',
+    margin: 'clamp(18px, 3vw, 32px) 0',
 
     minWidth: 0,
   },
@@ -796,10 +681,9 @@ const styles: {
     margin:
       '0 0 clamp(8px, 1vw, 12px) 0',
 
-    color: '#ffffff',
+    color: '#111827',
 
-    fontSize:
-      'clamp(22px, 3vw, 28px)',
+    fontSize: 'clamp(22px, 3vw, 28px)',
 
     fontWeight: 700,
 
@@ -811,10 +695,9 @@ const styles: {
   bannerDesc: {
     margin: 0,
 
-    color: '#9da6bd',
+    color: '#6b7280',
 
-    fontSize:
-      'clamp(12px, 1vw, 14px)',
+    fontSize: 'clamp(12px, 1vw, 14px)',
 
     lineHeight: 1.6,
 
@@ -843,13 +726,14 @@ const styles: {
     display: 'flex',
     flexDirection: 'column',
 
-    gap:
-      'clamp(12px, 1.5vw, 16px)',
+    gap: 'clamp(12px, 1.5vw, 16px)',
 
     boxSizing: 'border-box',
 
     overflowY: 'auto',
     overflowX: 'hidden',
+
+    background: '#ffffff',
   },
 
   tabContainer: {
@@ -857,8 +741,9 @@ const styles: {
 
     minWidth: 0,
 
-    background:
-      'rgba(0, 0, 0, 0.25)',
+    background: '#f3f4f6',
+
+    border: '1px solid #e5e7eb',
 
     borderRadius: '8px',
 
@@ -880,10 +765,9 @@ const styles: {
 
     borderRadius: '6px',
 
-    color: '#9da6bd',
+    color: '#6b7280',
 
-    fontSize:
-      'clamp(11px, 1vw, 13px)',
+    fontSize: 'clamp(11px, 1vw, 13px)',
 
     fontWeight: 600,
 
@@ -893,10 +777,12 @@ const styles: {
   },
 
   activeTab: {
-    background:
-      'rgba(173, 198, 255, 0.15)',
+    background: '#ffffff',
 
-    color: '#dae2fd',
+    color: '#16a34a',
+
+    boxShadow:
+      '0 1px 3px rgba(15, 23, 42, 0.08)',
   },
 
   formHeader: {
@@ -907,10 +793,9 @@ const styles: {
   formTitle: {
     margin: 0,
 
-    color: '#dae2fd',
+    color: '#111827',
 
-    fontSize:
-      'clamp(16px, 1.5vw, 18px)',
+    fontSize: 'clamp(16px, 1.5vw, 18px)',
 
     fontWeight: 600,
   },
@@ -918,10 +803,9 @@ const styles: {
   formSubtitle: {
     margin: '4px 0 0 0',
 
-    color: '#9da6bd',
+    color: '#6b7280',
 
-    fontSize:
-      'clamp(10px, 0.9vw, 12px)',
+    fontSize: 'clamp(10px, 0.9vw, 12px)',
 
     lineHeight: 1.5,
   },
@@ -930,18 +814,15 @@ const styles: {
     padding:
       'clamp(8px, 1vw, 10px) clamp(10px, 1.2vw, 14px)',
 
-    background:
-      'rgba(255, 77, 79, 0.15)',
+    background: '#fef2f2',
 
-    border:
-      '1px solid rgba(255, 77, 79, 0.3)',
+    border: '1px solid #fecaca',
 
     borderRadius: '6px',
 
-    color: '#ff7875',
+    color: '#dc2626',
 
-    fontSize:
-      'clamp(11px, 0.9vw, 13px)',
+    fontSize: 'clamp(11px, 0.9vw, 13px)',
 
     textAlign: 'center',
 
@@ -952,18 +833,15 @@ const styles: {
     padding:
       'clamp(8px, 1vw, 10px) clamp(10px, 1.2vw, 14px)',
 
-    background:
-      'rgba(82, 196, 26, 0.15)',
+    background: '#f0fdf4',
 
-    border:
-      '1px solid rgba(82, 196, 26, 0.3)',
+    border: '1px solid #bbf7d0',
 
     borderRadius: '6px',
 
-    color: '#73d13d',
+    color: '#15803d',
 
-    fontSize:
-      'clamp(11px, 0.9vw, 13px)',
+    fontSize: 'clamp(11px, 0.9vw, 13px)',
 
     textAlign: 'center',
 
@@ -974,8 +852,7 @@ const styles: {
     display: 'flex',
     flexDirection: 'column',
 
-    gap:
-      'clamp(9px, 1vw, 12px)',
+    gap: 'clamp(9px, 1vw, 12px)',
 
     width: '100%',
     minWidth: 0,
@@ -992,10 +869,9 @@ const styles: {
   },
 
   label: {
-    color: '#c2c6d6',
+    color: '#374151',
 
-    fontSize:
-      'clamp(10px, 0.8vw, 11px)',
+    fontSize: 'clamp(10px, 0.8vw, 11px)',
 
     fontWeight: 700,
 
@@ -1015,8 +891,7 @@ const styles: {
   inputIcon: {
     position: 'absolute',
 
-    left:
-      'clamp(9px, 1vw, 12px)',
+    left: 'clamp(9px, 1vw, 12px)',
 
     display: 'flex',
     alignItems: 'center',
@@ -1030,24 +905,20 @@ const styles: {
   input: {
     width: '100%',
 
-    height:
-      'clamp(38px, 3.5vw, 40px)',
+    height: 'clamp(38px, 3.5vw, 40px)',
 
     padding:
       '0 clamp(10px, 1.2vw, 16px) 0 clamp(34px, 3.5vw, 40px)',
 
-    background:
-      'rgba(0, 0, 0, 0.25)',
+    background: '#ffffff',
 
-    border:
-      '1px solid rgba(255, 255, 255, 0.15)',
+    border: '1px solid #d1d5db',
 
     borderRadius: '6px',
 
-    color: '#ffffff',
+    color: '#111827',
 
-    fontSize:
-      'clamp(11px, 0.9vw, 13px)',
+    fontSize: 'clamp(11px, 0.9vw, 13px)',
 
     outline: 'none',
 
@@ -1063,21 +934,19 @@ const styles: {
 
     width: '100%',
 
-    height:
-      'clamp(40px, 3.5vw, 42px)',
+    height: 'clamp(40px, 3.5vw, 42px)',
 
-    background: '#adc6ff',
+    background: '#16a34a',
 
     border: 'none',
 
     borderRadius: '6px',
 
-    color: '#002e6a',
+    color: '#ffffff',
 
     fontWeight: 700,
 
-    fontSize:
-      'clamp(12px, 1vw, 14px)',
+    fontSize: 'clamp(12px, 1vw, 14px)',
 
     cursor: 'pointer',
 
@@ -1088,7 +957,7 @@ const styles: {
     gap: '8px',
 
     boxShadow:
-      '0 4px 14px rgba(173, 198, 255, 0.15)',
+      '0 4px 14px rgba(22, 163, 74, 0.18)',
 
     transition: 'all 0.2s ease',
 

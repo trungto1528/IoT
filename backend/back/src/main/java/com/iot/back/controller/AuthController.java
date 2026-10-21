@@ -7,12 +7,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.iot.back.dto.ApiResponse;
 import com.iot.back.dto.LoginDataResponse;
 import com.iot.back.dto.LoginRequest;
-import com.iot.back.dto.ProfileRequest;
 import com.iot.back.dto.RegisterRequest;
 import com.iot.back.dto.UserProfileResponse;
 import com.iot.back.service.UserService;
@@ -41,8 +41,8 @@ public class AuthController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<UserProfileResponse> getProfile(@RequestBody ProfileRequest request) {
-        UserProfileResponse profile = userService.getProfile(request != null ? request.getId() : null);
+    public ResponseEntity<UserProfileResponse> getProfile(@RequestParam Integer id) {
+        UserProfileResponse profile = userService.getProfile(id);
         if (profile != null) {
             return ResponseEntity.ok(profile);
         }
