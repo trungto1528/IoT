@@ -25,7 +25,7 @@ interface ResourceLink {
 }
 
 const API_BASE_URL = 'http://localhost:8080/api';
-const DOCUMENT_LINK = 'Tai_lieu_IoT.pdf';
+const DOCUMENT_LINK = 'https://docs.google.com/document/d/1X8ML_dx0oc4n2Trm3JW_Rc34PVWpg845/edit?usp=sharing&ouid=115230924169726356749&rtpof=true&sd=true';
 
 export function Profile() {
   const [profile, setProfile] = useState<ProfileData | null>(null);

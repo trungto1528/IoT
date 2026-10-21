@@ -20,7 +20,7 @@ const RESOURCE_LINKS = [
   },
   {
     label: 'Tài liệu',
-    url: 'Tai_lieu_IoT.pdf',
+    url: 'https://docs.google.com/document/d/1X8ML_dx0oc4n2Trm3JW_Rc34PVWpg845/edit?usp=sharing&ouid=115230924169726356749&rtpof=true&sd=true',
   },
 ];
 
