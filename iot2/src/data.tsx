@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface SensorRecord {
@@ -143,6 +144,9 @@ export function SensorData() {
   const [selectedSensor, setSelectedSensor] =
     useState<string>('all');
 
+  // Lưu lựa chọn cảm biến mới nhất mà không làm API useEffect chạy lại.
+  const selectedSensorRef = useRef<string>('all');
+
   const [searchValue, setSearchValue] =
     useState<string>('');
 
@@ -193,23 +197,17 @@ export function SensorData() {
         );
       } else {
         const textarea =
-          document.createElement(
-            'textarea'
-          );
+          document.createElement('textarea');
 
         textarea.value = timestamp;
         textarea.style.position = 'fixed';
         textarea.style.opacity = '0';
 
-        document.body.appendChild(
-          textarea
-        );
+        document.body.appendChild(textarea);
 
         textarea.select();
         document.execCommand('copy');
-        document.body.removeChild(
-          textarea
-        );
+        document.body.removeChild(textarea);
       }
 
       setCopiedId(id);
@@ -270,7 +268,25 @@ export function SensorData() {
     const timeoutId = setTimeout(async () => {
       const query = searchValue.trim();
 
-      if (isTimeSearch && query && !isValidTimeFilter(query)) {
+      // Đọc lựa chọn cảm biến mới nhất tại thời điểm thực hiện request.
+      const currentSensor = selectedSensorRef.current;
+
+      const currentIsSensorSearch =
+        SENSOR_TYPES.includes(
+          currentSensor as (typeof SENSOR_TYPES)[number]
+        );
+
+      const currentIsAllSearch =
+        currentSensor === 'all';
+
+      const currentIsTimeSearch =
+        currentSensor === 'time';
+
+      if (
+        currentIsTimeSearch &&
+        query &&
+        !isValidTimeFilter(query)
+      ) {
         setSensorData([]);
         setTotalPages(0);
         setTotalElements(0);
@@ -290,16 +306,16 @@ export function SensorData() {
           sort: `${SORT_PARAMS[sortField]},${sortOrder}`,
         });
 
-        if (isSensorSearch && query) {
+        if (currentIsSensorSearch && query) {
           const numericValue = Number(query);
 
           if (Number.isFinite(numericValue)) {
-            params.set('type', selectedSensor);
+            params.set('type', currentSensor);
             params.set('value', numericValue.toString());
           }
         }
 
-        if (isAllSearch && query) {
+        if (currentIsAllSearch && query) {
           const numericValue = Number(query);
 
           if (isValidTimeFilter(query)) {
@@ -327,7 +343,7 @@ export function SensorData() {
           }
         }
 
-        if (isTimeSearch && query) {
+        if (currentIsTimeSearch && query) {
           params.set('time', query);
         }
 
@@ -340,7 +356,8 @@ export function SensorData() {
           throw new Error('Unable to fetch sensor data');
         }
 
-        const data: SensorApiResponse = await response.json();
+        const data: SensorApiResponse =
+          await response.json();
 
         setTotalPages(data.totalPages);
         setTotalElements(data.totalElements);
@@ -372,7 +389,11 @@ export function SensorData() {
           return;
         }
 
-        console.error('Failed to fetch sensor data:', error);
+        console.error(
+          'Failed to fetch sensor data:',
+          error
+        );
+
         setSensorData([]);
         setTotalPages(0);
         setTotalElements(0);
@@ -389,16 +410,12 @@ export function SensorData() {
   }, [
     currentPage,
     pageSize,
-    selectedSensor,
     searchValue,
     sortField,
     sortOrder,
-    isSensorSearch,
-    isTimeSearch,
   ]);
 
   const processedData = sensorData;
-
 
   useEffect(() => {
     if (totalPages === 0) {
@@ -413,14 +430,13 @@ export function SensorData() {
       setCurrentPage(totalPages - 1);
     }
   }, [currentPage, totalPages]);
+
   const handleSort = (
     field: SortField
   ) => {
     if (sortField === field) {
       setSortOrder((prev) =>
-        prev === 'asc'
-          ? 'desc'
-          : 'asc'
+        prev === 'asc' ? 'desc' : 'asc'
       );
     } else {
       setSortField(field);
@@ -522,9 +538,7 @@ export function SensorData() {
       items.push(
         <button
           key={page}
-          onClick={() =>
-            setCurrentPage(page)
-          }
+          onClick={() => setCurrentPage(page)}
           style={{
             ...styles.pageNumber,
             ...(currentPage === page
@@ -539,14 +553,7 @@ export function SensorData() {
 
     return items;
   };
-  // const renderUnit=(type:SensorRecord['type'])=>{
-  //   const typeUnit = {
-  //     temperature: "°C",
-  //     humidity: "%",
-  //     light: "Lux"
-  //   };
-  //   return typeUnit[type];
-  // }
+
   const renderTypeBadge = (
     type: SensorRecord['type'],
     typeName: string
@@ -613,15 +620,11 @@ export function SensorData() {
       <th
         style={{
           ...styles.th,
-          textAlign: alignRight
-            ? 'right'
-            : 'left',
+          textAlign: alignRight ? 'right' : 'left',
           cursor: 'pointer',
           userSelect: 'none',
         }}
-        onClick={() =>
-          handleSort(field)
-        }
+        onClick={() => handleSort(field)}
       >
         <div
           style={{
@@ -650,15 +653,12 @@ export function SensorData() {
             viewBox="0 0 24 24"
             fill="none"
             stroke={
-              isActive
-                ? '#2563eb'
-                : '#9ca3af'
+              isActive ? '#2563eb' : '#9ca3af'
             }
             strokeWidth="2.5"
             style={{
               transform:
-                isActive &&
-                  sortOrder === 'asc'
+                isActive && sortOrder === 'asc'
                   ? 'rotate(180deg)'
                   : 'rotate(0deg)',
               transition:
@@ -685,11 +685,11 @@ export function SensorData() {
             <select
               value={selectedSensor}
               onChange={(e) => {
-                setSelectedSensor(
-                  e.target.value
-                );
-                setSearchValue('');
-                setCurrentPage(0);
+                const value = e.target.value;
+
+                // Cập nhật ref ngay lập tức nhưng không kích hoạt API.
+                selectedSensorRef.current = value;
+                setSelectedSensor(value);
               }}
               style={styles.selectInput}
             >
@@ -720,24 +720,28 @@ export function SensorData() {
               >
                 Ánh sáng
               </option>
+
               <option
                 value="gas"
                 style={styles.selectOption}
               >
                 Khí gas
               </option>
+
               <option
                 value="smoke"
                 style={styles.selectOption}
               >
                 Khói
               </option>
+
               <option
                 value="motion"
                 style={styles.selectOption}
               >
                 Chuyển động
               </option>
+
               <option
                 value="time"
                 style={styles.selectOption}
@@ -799,10 +803,7 @@ export function SensorData() {
           <table style={styles.table}>
             <thead style={styles.tableHead}>
               <tr>
-                {renderSortableHeader(
-                  'stt',
-                  'STT'
-                )}
+                {renderSortableHeader('stt', 'STT')}
 
                 {renderSortableHeader(
                   'typeName',
@@ -840,17 +841,13 @@ export function SensorData() {
                       )}
                     </td>
 
-                    <td style={{...styles.td}}>
+                    <td style={{ ...styles.td }}>
                       {row.value}
                     </td>
 
                     <td style={styles.tdTime}>
-                      <div
-                        style={styles.timeCell}
-                      >
-                        <span
-                          style={styles.timeText}
-                        >
+                      <div style={styles.timeCell}>
+                        <span style={styles.timeText}>
                           {row.timestamp}
                         </span>
 
@@ -858,8 +855,7 @@ export function SensorData() {
                           type="button"
                           aria-label={`Sao chép thời gian ${row.timestamp}`}
                           title={
-                            copiedId ===
-                            row.id
+                            copiedId === row.id
                               ? 'Đã sao chép'
                               : 'Sao chép thời gian'
                           }
@@ -871,14 +867,12 @@ export function SensorData() {
                           }
                           style={{
                             ...styles.copyBtn,
-                            ...(copiedId ===
-                            row.id
+                            ...(copiedId === row.id
                               ? styles.copyBtnCopied
                               : {}),
                           }}
                         >
-                          {copiedId ===
-                          row.id ? (
+                          {copiedId === row.id ? (
                             <svg
                               width="13"
                               height="13"
@@ -956,24 +950,18 @@ export function SensorData() {
                 }
                 style={styles.pageSizeSelect}
               >
-                {PAGE_SIZE_OPTIONS.map(
-                  (size) => (
-                    <option
-                      key={size}
-                      value={size}
-                      style={styles.selectOption}
-                    >
-                      {size}
-                    </option>
-                  )
-                )}
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option
+                    key={size}
+                    value={size}
+                    style={styles.selectOption}
+                  >
+                    {size}
+                  </option>
+                ))}
               </select>
 
-              <span
-                style={
-                  styles.pageSizeSelectIcon
-                }
-              >
+              <span style={styles.pageSizeSelectIcon}>
                 <svg
                   width="12"
                   height="12"
@@ -996,15 +984,10 @@ export function SensorData() {
             <button
               style={{
                 ...styles.pageArrow,
-                opacity:
-                  currentPage === 0
-                    ? 0.35
-                    : 1,
+                opacity: currentPage === 0 ? 0.35 : 1,
               }}
               disabled={currentPage === 0}
-              onClick={() =>
-                setCurrentPage(0)
-              }
+              onClick={() => setCurrentPage(0)}
               title="Trang đầu"
             >
               «
@@ -1013,16 +996,11 @@ export function SensorData() {
             <button
               style={{
                 ...styles.pageArrow,
-                opacity:
-                  currentPage === 0
-                    ? 0.35
-                    : 1,
+                opacity: currentPage === 0 ? 0.35 : 1,
               }}
               disabled={currentPage === 0}
               onClick={() =>
-                setCurrentPage(
-                  (page) => page - 1
-                )
+                setCurrentPage((page) => page - 1)
               }
               title="Trang trước"
             >
@@ -1038,20 +1016,16 @@ export function SensorData() {
                 ...styles.pageArrow,
                 opacity:
                   totalPages === 0 ||
-                    currentPage >=
-                    totalPages - 1
+                  currentPage >= totalPages - 1
                     ? 0.35
                     : 1,
               }}
               disabled={
                 totalPages === 0 ||
-                currentPage >=
-                totalPages - 1
+                currentPage >= totalPages - 1
               }
               onClick={() =>
-                setCurrentPage(
-                  (page) => page + 1
-                )
+                setCurrentPage((page) => page + 1)
               }
               title="Trang sau"
             >
@@ -1063,20 +1037,16 @@ export function SensorData() {
                 ...styles.pageArrow,
                 opacity:
                   totalPages === 0 ||
-                    currentPage >=
-                    totalPages - 1
+                  currentPage >= totalPages - 1
                     ? 0.35
                     : 1,
               }}
               disabled={
                 totalPages === 0 ||
-                currentPage >=
-                totalPages - 1
+                currentPage >= totalPages - 1
               }
               onClick={() =>
-                setCurrentPage(
-                  totalPages - 1
-                )
+                setCurrentPage(totalPages - 1)
               }
               title="Trang cuối"
             >
@@ -1100,9 +1070,7 @@ export function SensorData() {
               onChange={(e) =>
                 setJumpPage(e.target.value)
               }
-              placeholder={String(
-                currentPage + 1
-              )}
+              placeholder={String(currentPage + 1)}
               disabled={totalPages === 0}
               style={styles.pageJumpInput}
             />
@@ -1115,9 +1083,9 @@ export function SensorData() {
           <span style={styles.totalInfo}>
             {totalElements > 0
               ? `${currentPage * pageSize + 1}-${Math.min(
-                (currentPage + 1) * pageSize,
-                totalElements
-              )} / ${totalElements}`
+                  (currentPage + 1) * pageSize,
+                  totalElements
+                )} / ${totalElements}`
               : '0 / 0'}
           </span>
         </div>
@@ -1185,8 +1153,7 @@ const styles: {
     borderRadius: '8px',
     color: '#111827',
     colorScheme: 'light',
-    fontSize:
-      'clamp(11px, 0.9vw, 14px)',
+    fontSize: 'clamp(11px, 0.9vw, 14px)',
     outline: 'none',
     cursor: 'pointer',
     appearance: 'none',
@@ -1208,8 +1175,7 @@ const styles: {
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
     color: '#111827',
-    fontSize:
-      'clamp(11px, 0.9vw, 14px)',
+    fontSize: 'clamp(11px, 0.9vw, 14px)',
     outline: 'none',
     minWidth: 'clamp(150px, 18vw, 220px)',
     maxWidth: '100%',
@@ -1238,8 +1204,7 @@ const styles: {
   tableCard: {
     background: '#ffffff',
     border: '1px solid #e5e7eb',
-    boxShadow:
-      '0 4px 12px rgba(15, 23, 42, 0.05)',
+    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)',
     borderRadius: '12px',
     overflow: 'hidden',
     display: 'flex',
@@ -1279,8 +1244,7 @@ const styles: {
   th: {
     padding:
       'clamp(8px, 1vw, 18px) clamp(8px, 1.5vw, 24px)',
-    fontSize:
-      'clamp(9px, 0.75vw, 12px)',
+    fontSize: 'clamp(9px, 0.75vw, 12px)',
     fontWeight: 700,
     color: '#6b7280',
     letterSpacing: '0.5px',
@@ -1299,8 +1263,7 @@ const styles: {
   tdId: {
     padding:
       'clamp(8px, 1vw, 18px) clamp(8px, 1.5vw, 24px)',
-    fontSize:
-      'clamp(10px, 0.85vw, 14px)',
+    fontSize: 'clamp(10px, 0.85vw, 14px)',
     color: '#111827',
     fontWeight: 500,
     overflow: 'hidden',
@@ -1312,8 +1275,7 @@ const styles: {
   td: {
     padding:
       'clamp(8px, 1vw, 18px) clamp(8px, 1.5vw, 24px)',
-    fontSize:
-      'clamp(10px, 0.85vw, 14px)',
+    fontSize: 'clamp(10px, 0.85vw, 14px)',
     color: '#111827',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -1324,8 +1286,7 @@ const styles: {
   tdTime: {
     padding:
       'clamp(8px, 1vw, 18px) clamp(8px, 1.5vw, 24px)',
-    fontSize:
-      'clamp(9px, 0.8vw, 14px)',
+    fontSize: 'clamp(9px, 0.8vw, 14px)',
     color: '#6b7280',
     textAlign: 'right',
     overflow: 'hidden',
@@ -1378,8 +1339,7 @@ const styles: {
       'clamp(20px, 2.5vw, 32px) clamp(12px, 1.5vw, 24px)',
     textAlign: 'center',
     color: '#6b7280',
-    fontSize:
-      'clamp(11px, 0.9vw, 14px)',
+    fontSize: 'clamp(11px, 0.9vw, 14px)',
   },
 
   pagination: {
@@ -1406,8 +1366,7 @@ const styles: {
   },
 
   pageSizeLabel: {
-    fontSize:
-      'clamp(10px, 0.85vw, 13px)',
+    fontSize: 'clamp(10px, 0.85vw, 13px)',
     color: '#6b7280',
     whiteSpace: 'nowrap',
   },
@@ -1420,8 +1379,7 @@ const styles: {
     borderRadius: '7px',
     color: '#111827',
     colorScheme: 'light',
-    fontSize:
-      'clamp(10px, 0.85vw, 13px)',
+    fontSize: 'clamp(10px, 0.85vw, 13px)',
     outline: 'none',
     cursor: 'pointer',
     appearance: 'none',
@@ -1452,8 +1410,7 @@ const styles: {
     border: '1px solid #e5e7eb',
     borderRadius: '7px',
     color: '#111827',
-    fontSize:
-      'clamp(10px, 0.85vw, 13px)',
+    fontSize: 'clamp(10px, 0.85vw, 13px)',
     textAlign: 'center',
     outline: 'none',
     boxSizing: 'border-box',
@@ -1501,8 +1458,7 @@ const styles: {
     border: '1px solid transparent',
     borderRadius: '6px',
     color: '#6b7280',
-    fontSize:
-      'clamp(10px, 0.85vw, 13px)',
+    fontSize: 'clamp(10px, 0.85vw, 13px)',
     fontWeight: 500,
     cursor: 'pointer',
     padding: '0 6px',
@@ -1524,14 +1480,12 @@ const styles: {
     alignItems: 'center',
     justifyContent: 'center',
     color: '#9ca3af',
-    fontSize:
-      'clamp(10px, 0.85vw, 13px)',
+    fontSize: 'clamp(10px, 0.85vw, 13px)',
     userSelect: 'none',
   },
 
   totalInfo: {
-    fontSize:
-      'clamp(10px, 0.85vw, 13px)',
+    fontSize: 'clamp(10px, 0.85vw, 13px)',
     color: '#6b7280',
     whiteSpace: 'nowrap',
     minWidth: '70px',

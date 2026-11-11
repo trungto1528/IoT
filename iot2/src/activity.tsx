@@ -387,8 +387,8 @@ export function ActivityHistory() {
         totalElements === 0
             ? 0
             : (currentPage - 1) *
-                  pageSize +
-              1;
+            pageSize +
+            1;
 
     const lastItem = Math.min(
         currentPage * pageSize,
@@ -466,7 +466,6 @@ export function ActivityHistory() {
                         onChange={handleUserChange}
                         style={styles.filterInput}
                     />
-
                     <select
                         value={deviceFilter}
                         onChange={handleDeviceChange}
@@ -479,53 +478,20 @@ export function ActivityHistory() {
                             Tất cả thiết bị
                         </option>
 
-                        <option
-                            value="LED 1"
-                            style={styles.selectOption}
-                        >
+                        <option value="1" style={styles.selectOption}>
                             LED 1
                         </option>
 
-                        <option
-                            value="LED 2"
-                            style={styles.selectOption}
-                        >
+                        <option value="2" style={styles.selectOption}>
                             LED 2
                         </option>
 
-                        <option
-                            value="LED 3"
-                            style={styles.selectOption}
-                        >
+                        <option value="3" style={styles.selectOption}>
                             LED 3
                         </option>
 
-                        <option
-                            value="LED 4"
-                            style={styles.selectOption}
-                        >
+                        <option value="4" style={styles.selectOption}>
                             LED 4
-                        </option>
-
-                        <option
-                            value="LED 5"
-                            style={styles.selectOption}
-                        >
-                            LED 5
-                        </option>
-
-                        <option
-                            value="LED 6"
-                            style={styles.selectOption}
-                        >
-                            LED 6
-                        </option>
-
-                        <option
-                            value="LED 7"
-                            style={styles.selectOption}
-                        >
-                            LED 7
                         </option>
                     </select>
 
@@ -710,7 +676,7 @@ export function ActivityHistory() {
 
                         <tbody>
                             {paginatedActivities.length >
-                            0 ? (
+                                0 ? (
                                 paginatedActivities.map(
                                     item => (
                                         <tr
@@ -791,7 +757,7 @@ export function ActivityHistory() {
                                                         )}`}
                                                         title={
                                                             copiedId ===
-                                                            item.id
+                                                                item.id
                                                                 ? 'Đã sao chép'
                                                                 : 'Sao chép thời gian'
                                                         }
@@ -806,13 +772,13 @@ export function ActivityHistory() {
                                                         style={{
                                                             ...styles.copyBtn,
                                                             ...(copiedId ===
-                                                            item.id
+                                                                item.id
                                                                 ? styles.copyBtnCopied
                                                                 : {}),
                                                         }}
                                                     >
                                                         {copiedId ===
-                                                        item.id ? (
+                                                            item.id ? (
                                                             <svg
                                                                 width="13"
                                                                 height="13"
@@ -874,7 +840,7 @@ export function ActivityHistory() {
                                         {loading
                                             ? 'Đang tải dữ liệu...'
                                             : errorMsg ||
-                                              'Không có lịch sử hoạt động'}
+                                            'Không có lịch sử hoạt động'}
                                     </td>
                                 </tr>
                             )}
@@ -1003,12 +969,12 @@ export function ActivityHistory() {
                                 ...styles.pageArrow,
                                 opacity:
                                     totalPages === 0 ||
-                                    currentPage >= totalPages
+                                        currentPage >= totalPages
                                         ? 0.35
                                         : 1,
                                 cursor:
                                     totalPages === 0 ||
-                                    currentPage >= totalPages
+                                        currentPage >= totalPages
                                         ? 'not-allowed'
                                         : 'pointer',
                             }}
@@ -1034,12 +1000,12 @@ export function ActivityHistory() {
                                 ...styles.pageArrow,
                                 opacity:
                                     totalPages === 0 ||
-                                    currentPage >= totalPages
+                                        currentPage >= totalPages
                                         ? 0.35
                                         : 1,
                                 cursor:
                                     totalPages === 0 ||
-                                    currentPage >= totalPages
+                                        currentPage >= totalPages
                                         ? 'not-allowed'
                                         : 'pointer',
                             }}
