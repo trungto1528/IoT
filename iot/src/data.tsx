@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 interface SensorRecord {
   id: number;
   stt: string;
-  type: 'temperature' | 'humidity' | 'light';
+  type: 'temperature' | 'humidity' | 'light' | 'gas' | 'smoke' | 'motion';
   typeName: string;
   rawValue: number;
   value: string;
@@ -23,7 +23,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 interface SensorApiRecord {
   id: number;
-  type: 'temp' | 'humid' | 'light';
+  type: 'temp' | 'humid' | 'light' | 'gas' | 'smoke' | 'motion';
   value: number;
   time: string;
 }
@@ -51,13 +51,84 @@ const SENSOR_TYPE_DETAILS = {
     typeName: 'Ánh sáng',
     unit: 'Lux',
   },
+  gas: {
+    type: 'gas' as const,
+    typeName: 'Khí gas',
+    unit: '%',
+  },
+  smoke: {
+    type: 'smoke' as const,
+    typeName: 'Khói',
+    unit: '%',
+  },
+  motion: {
+    type: 'motion' as const,
+    typeName: 'Chuyển động',
+    unit: '%',
+  },
 };
 
 const SENSOR_TYPES = [
   'temperature',
   'humidity',
   'light',
+  'gas',
+  'smoke',
+  'motion',
 ] as const;
+
+const SENSOR_TYPE_KEYWORDS: Record<
+  (typeof SENSOR_TYPES)[number],
+  string[]
+> = {
+  temperature: [
+    'nhiệt độ',
+    'nhiệt',
+    'nhiet do',
+    'nhiet',
+    'temperature',
+    'temp',
+  ],
+  humidity: [
+    'độ ẩm',
+    'do am',
+    'humidity',
+    'humid',
+  ],
+  light: [
+    'ánh sáng',
+    'anh sang',
+    'light',
+  ],
+  gas: [
+    'khí gas',
+    'khigas',
+    'gas',
+  ],
+  smoke: [
+    'khói',
+    'khoi',
+    'smoke',
+  ],
+  motion: [
+    'chuyển động',
+    'chuyen dong',
+    'motion',
+  ],
+};
+
+const matchSensorType = (query: string) => {
+  const normalized = query
+    .toLowerCase()
+    .normalize('NFC')
+    .trim();
+
+  return SENSOR_TYPES.find((type) =>
+    SENSOR_TYPE_KEYWORDS[type].some(
+      (keyword) => normalized.includes(keyword)
+    )
+  );
+};
 
 const SORT_PARAMS: Record<SortField, string> = {
   stt: 'id',
@@ -97,13 +168,64 @@ export function SensorData() {
     useState<SortField>('stt');
 
   const [sortOrder, setSortOrder] =
-    useState<SortOrder>('asc');
+    useState<SortOrder>('desc');
 
   const [loading, setLoading] =
     useState(false);
 
   const [errorMsg, setErrorMsg] =
     useState('');
+
+  const [copiedId, setCopiedId] =
+    useState<number | null>(null);
+
+  const copyTimestamp = async (
+    id: number,
+    timestamp: string
+  ) => {
+    try {
+      if (
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard.writeText(
+          timestamp
+        );
+      } else {
+        const textarea =
+          document.createElement(
+            'textarea'
+          );
+
+        textarea.value = timestamp;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+
+        document.body.appendChild(
+          textarea
+        );
+
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(
+          textarea
+        );
+      }
+
+      setCopiedId(id);
+
+      setTimeout(() => {
+        setCopiedId((current) =>
+          current === id ? null : current
+        );
+      }, 1500);
+    } catch (error) {
+      console.error(
+        'Không thể sao chép thời gian:',
+        error
+      );
+    }
+  };
 
   useEffect(() => {
     const isLoggedIn =
@@ -118,6 +240,9 @@ export function SensorData() {
     SENSOR_TYPES.includes(
       selectedSensor as (typeof SENSOR_TYPES)[number]
     );
+
+  const isAllSearch =
+    selectedSensor === 'all';
 
   const isTimeSearch =
     selectedSensor === 'time';
@@ -168,9 +293,37 @@ export function SensorData() {
         if (isSensorSearch && query) {
           const numericValue = Number(query);
 
-          if (!Number.isNaN(numericValue)) {
+          if (Number.isFinite(numericValue)) {
             params.set('type', selectedSensor);
             params.set('value', numericValue.toString());
+          }
+        }
+
+        if (isAllSearch && query) {
+          const numericValue = Number(query);
+
+          if (isValidTimeFilter(query)) {
+            params.set('time', query);
+          } else if (Number.isFinite(numericValue)) {
+            params.set(
+              'value',
+              numericValue.toString()
+            );
+          } else {
+            const matchedType =
+              matchSensorType(query);
+
+            if (!matchedType) {
+              setSensorData([]);
+              setTotalPages(0);
+              setTotalElements(0);
+              setErrorMsg(
+                'Nhập giá trị số, thời gian hoặc loại cảm biến (Nhiệt độ, Độ ẩm, Ánh sáng, Khí gas, Khói, Chuyển động).'
+              );
+              return;
+            }
+
+            params.set('type', matchedType);
           }
         }
 
@@ -402,6 +555,9 @@ export function SensorData() {
       temperature: '#d97706',
       humidity: '#2563eb',
       light: '#16a34a',
+      gas: '#dc2626',
+      smoke: '#ea580c',
+      motion: '#2563eb',
     };
 
     const color =
@@ -565,6 +721,24 @@ export function SensorData() {
                 Ánh sáng
               </option>
               <option
+                value="gas"
+                style={styles.selectOption}
+              >
+                Khí gas
+              </option>
+              <option
+                value="smoke"
+                style={styles.selectOption}
+              >
+                Khói
+              </option>
+              <option
+                value="motion"
+                style={styles.selectOption}
+              >
+                Chuyển động
+              </option>
+              <option
                 value="time"
                 style={styles.selectOption}
               >
@@ -591,14 +765,13 @@ export function SensorData() {
               type={isSensorSearch ? 'number' : 'text'}
               step="any"
               placeholder={
-                selectedSensor === 'all'
-                  ? 'Chọn loại để tìm kiếm'
+                isAllSearch
+                  ? 'Giá trị, thời gian hoặc loại'
                   : isTimeSearch
                     ? 'YYYY-MM-DD HH:mm:ss'
                     : 'Nhập giá trị'
               }
               value={searchValue}
-              disabled={selectedSensor === 'all'}
               onChange={(e) => {
                 setSearchValue(e.target.value);
                 setCurrentPage(0);
@@ -672,7 +845,76 @@ export function SensorData() {
                     </td>
 
                     <td style={styles.tdTime}>
-                      {row.timestamp}
+                      <div
+                        style={styles.timeCell}
+                      >
+                        <span
+                          style={styles.timeText}
+                        >
+                          {row.timestamp}
+                        </span>
+
+                        <button
+                          type="button"
+                          aria-label={`Sao chép thời gian ${row.timestamp}`}
+                          title={
+                            copiedId ===
+                            row.id
+                              ? 'Đã sao chép'
+                              : 'Sao chép thời gian'
+                          }
+                          onClick={() =>
+                            copyTimestamp(
+                              row.id,
+                              row.timestamp
+                            )
+                          }
+                          style={{
+                            ...styles.copyBtn,
+                            ...(copiedId ===
+                            row.id
+                              ? styles.copyBtnCopied
+                              : {}),
+                          }}
+                        >
+                          {copiedId ===
+                          row.id ? (
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <rect
+                                x="9"
+                                y="9"
+                                width="12"
+                                height="12"
+                                rx="2"
+                              />
+
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -1090,6 +1332,45 @@ const styles: {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     boxSizing: 'border-box',
+  },
+
+  timeCell: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: '6px',
+    minWidth: 0,
+  },
+
+  timeText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
+  },
+
+  copyBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
+    minWidth: '24px',
+    padding: 0,
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    background: '#ffffff',
+    color: '#6b7280',
+    cursor: 'pointer',
+    flexShrink: 0,
+    transition:
+      'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+  },
+
+  copyBtnCopied: {
+    borderColor: '#86efac',
+    background: '#f0fdf4',
+    color: '#16a34a',
   },
 
   emptyTd: {

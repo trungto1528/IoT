@@ -4,15 +4,28 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
 
+type SensorValue = number | null;
+
 interface SensorData {
-  temperature: number;
-  humidity: number;
-  light: number;
+  temperature: SensorValue;
+  humidity: SensorValue;
+  light: SensorValue;
 }
 
 interface HistoryPoint extends SensorData {
   timestamp: string;
 }
+
+const toReading = (
+  value: unknown
+): SensorValue => {
+  const numeric = Number(value);
+
+  return Number.isFinite(numeric) &&
+    numeric > 0
+    ? numeric
+    : null;
+};
 
 interface SensorApiRecord {
   id: number;
@@ -59,9 +72,42 @@ const SENSOR_CONFIG = {
   },
   light: {
     min: 0,
-    max: 10000,
-    color: '#16a34a',
+    max: 8000,
+    color: '#08983f',
   },
+};
+
+const Y_AXIS_TICKS = [
+  0, 20, 40, 60, 80, 100,
+];
+
+const CHART_WIDTH = 500;
+const CHART_HEIGHT = 200;
+const CHART_PADDING = 10;
+
+const CHART_TOP_PERCENT =
+  (CHART_PADDING / CHART_HEIGHT) * 100;
+
+const CHART_PLOT_PERCENT =
+  100 - CHART_TOP_PERCENT * 2;
+
+const getPlotTopPercent = (
+  percent: number
+): number =>
+  CHART_TOP_PERCENT +
+  (percent / 100) *
+    CHART_PLOT_PERCENT;
+
+const getAxisValue = (
+  key: keyof typeof SENSOR_CONFIG,
+  percent: number
+): number => {
+  const { min, max } =
+    SENSOR_CONFIG[key];
+
+  return Math.round(
+    max - (percent / 100) * (max - min)
+  );
 };
 
 const clampRatio = (
@@ -148,9 +194,9 @@ export function Dashboard() {
 
   const [sensorData, setSensorData] =
     useState<SensorData>({
-      temperature: 0,
-      humidity: 0,
-      light: 0,
+      temperature: null,
+      humidity: null,
+      light: null,
     });
 
   const [history, setHistory] =
@@ -271,6 +317,13 @@ export function Dashboard() {
 
     orderedRecords.forEach(
       (record) => {
+        const value =
+          toReading(record.value);
+
+        if (value === null) {
+          return;
+        }
+
         const timestamp =
           normalizeTimestamp(
             record.time
@@ -285,7 +338,7 @@ export function Dashboard() {
             record.type === 'TEMP'
           ) {
             existing.temperature =
-              Number(record.value);
+              value;
           }
 
           if (
@@ -293,7 +346,7 @@ export function Dashboard() {
             record.type === 'HUMID'
           ) {
             existing.humidity =
-              Number(record.value);
+              value;
           }
 
           if (
@@ -301,16 +354,16 @@ export function Dashboard() {
             record.type === 'LIGHT'
           ) {
             existing.light =
-              Number(record.value);
+              value;
           }
 
           return;
         }
 
         const point: HistoryPoint = {
-          temperature: 0,
-          humidity: 0,
-          light: 0,
+          temperature: null,
+          humidity: null,
+          light: null,
           timestamp,
         };
 
@@ -319,7 +372,7 @@ export function Dashboard() {
           record.type === 'TEMP'
         ) {
           point.temperature =
-            Number(record.value);
+            value;
         }
 
         if (
@@ -327,7 +380,7 @@ export function Dashboard() {
           record.type === 'HUMID'
         ) {
           point.humidity =
-            Number(record.value);
+            value;
         }
 
         if (
@@ -335,7 +388,7 @@ export function Dashboard() {
           record.type === 'LIGHT'
         ) {
           point.light =
-            Number(record.value);
+            value;
         }
 
         grouped.set(
@@ -400,6 +453,25 @@ export function Dashboard() {
                   HistoryPoint
                 >();
 
+              const mergePoint = (
+                base: HistoryPoint,
+                incoming: HistoryPoint
+              ): HistoryPoint => ({
+                timestamp: base.timestamp,
+
+                temperature:
+                  incoming.temperature ??
+                  base.temperature,
+
+                humidity:
+                  incoming.humidity ??
+                  base.humidity,
+
+                light:
+                  incoming.light ??
+                  base.light,
+              });
+
               loadedHistory.forEach(
                 (point) => {
                   merged.set(
@@ -411,9 +483,19 @@ export function Dashboard() {
 
               currentHistory.forEach(
                 (point) => {
+                  const existing =
+                    merged.get(
+                      point.timestamp
+                    );
+
                   merged.set(
                     point.timestamp,
-                    point
+                    existing
+                      ? mergePoint(
+                          existing,
+                          point
+                        )
+                      : point
                   );
                 }
               );
@@ -441,14 +523,21 @@ export function Dashboard() {
                 ];
 
               if (latest) {
-                setSensorData({
-                  temperature:
-                    latest.temperature,
-                  humidity:
-                    latest.humidity,
-                  light:
-                    latest.light,
-                });
+                setSensorData(
+                  (current) => ({
+                    temperature:
+                      latest.temperature ??
+                      current.temperature,
+
+                    humidity:
+                      latest.humidity ??
+                      current.humidity,
+
+                    light:
+                      latest.light ??
+                      current.light,
+                  })
+                );
               }
 
               return result;
@@ -537,25 +626,28 @@ export function Dashboard() {
                   );
 
                 const newData: SensorData = {
-                  temperature:
-                    Number(
-                      body.temp ??
-                        body.temperature ??
-                        0
-                    ),
+                  temperature: toReading(
+                    body.temp ??
+                      body.temperature
+                  ),
 
-                  humidity:
-                    Number(
-                      body.humid ??
-                        body.humidity ??
-                        0
-                    ),
+                  humidity: toReading(
+                    body.humid ??
+                      body.humidity
+                  ),
 
-                  light:
-                    Number(
-                      body.light ?? 0
-                    ),
+                  light: toReading(
+                    body.light
+                  ),
                 };
+
+                if (
+                  newData.temperature === null &&
+                  newData.humidity === null &&
+                  newData.light === null
+                ) {
+                  return;
+                }
 
                 /*
                  * Ưu tiên timestamp do thiết bị gửi.
@@ -565,14 +657,18 @@ export function Dashboard() {
                  */
                 let timestamp: string;
 
+                const deviceTimestamp =
+                  Number(body.timestamp);
+
                 if (
-                  body.timestamp
+                  Number.isFinite(
+                    deviceTimestamp
+                  ) &&
+                  deviceTimestamp > 0
                 ) {
                   timestamp =
                     new Date(
-                      Number(
-                        body.timestamp
-                      ) * 1000
+                      deviceTimestamp * 1000
                     ).toISOString();
                 } else {
                   timestamp =
@@ -580,21 +676,56 @@ export function Dashboard() {
                 }
 
                 setSensorData(
-                  newData
+                  (current) => ({
+                    temperature:
+                      newData.temperature ??
+                      current.temperature,
+
+                    humidity:
+                      newData.humidity ??
+                      current.humidity,
+
+                    light:
+                      newData.light ??
+                      current.light,
+                  })
                 );
 
                 setHistory(
                   (prevHistory) => {
-                    const newPoint: HistoryPoint =
-                      {
-                        ...newData,
-                        timestamp,
-                      };
+                    const existing =
+                      prevHistory.find(
+                        (point) =>
+                          point.timestamp ===
+                          timestamp
+                      );
 
                     /*
                      * Nếu cùng timestamp thì cập nhật
                      * điểm đó thay vì tạo điểm trùng.
                      */
+                    const newPoint: HistoryPoint =
+                      existing
+                        ? {
+                            timestamp,
+
+                            temperature:
+                              newData.temperature ??
+                              existing.temperature,
+
+                            humidity:
+                              newData.humidity ??
+                              existing.humidity,
+
+                            light:
+                              newData.light ??
+                              existing.light,
+                          }
+                        : {
+                            ...newData,
+                            timestamp,
+                          };
+
                     const filtered =
                       prevHistory.filter(
                         (point) =>
@@ -792,9 +923,9 @@ export function Dashboard() {
       return '';
     }
 
-    const width = 500;
-    const height = 200;
-    const padding = 10;
+    const width = CHART_WIDTH;
+    const height = CHART_HEIGHT;
+    const padding = CHART_PADDING;
 
     const usableHeight =
       height -
@@ -806,38 +937,23 @@ export function Dashboard() {
 
     const {
       min,
-      max: defaultConfigMax,
+      max: effectiveMax,
     } =
       SENSOR_CONFIG[key];
 
-    let effectiveMax =
-      defaultConfigMax;
-
-    if (
-      key === 'light'
-    ) {
-      const currentMaxLight =
-        Math.max(
-          ...history.map(
-            (item) =>
-              item.light
-          ),
-          0
-        );
-
-      effectiveMax =
-        Math.max(
-          defaultConfigMax,
-          currentMaxLight
-        );
-    }
-
-    return history
+    const points = history
       .map(
         (
           point,
           index
         ) => {
+          const reading =
+            point[key];
+
+          if (reading === null) {
+            return null;
+          }
+
           const x =
             width -
             (
@@ -852,7 +968,7 @@ export function Dashboard() {
               min,
               Math.min(
                 effectiveMax,
-                point[key]
+                reading
               )
             );
 
@@ -872,13 +988,43 @@ export function Dashboard() {
             normalized *
               usableHeight;
 
-          return `${
-            index === 0
+          return {
+            index,
+            x,
+            y,
+          };
+        }
+      )
+      .filter(
+        (
+          point
+        ): point is {
+          index: number;
+          x: number;
+          y: number;
+        } => point !== null
+      );
+
+    return points
+      .map(
+        (
+          point,
+          index
+        ) => {
+          const previous =
+            points[index - 1];
+
+          const command =
+            !previous ||
+            point.index -
+              previous.index >
+              1
               ? 'M'
-              : 'L'
-          } ${x.toFixed(
+              : 'L';
+
+          return `${command} ${point.x.toFixed(
             1
-          )} ${y.toFixed(
+          )} ${point.y.toFixed(
             1
           )}`;
         }
@@ -889,7 +1035,7 @@ export function Dashboard() {
   const getChartXPercent = (
     index: number
   ): number => {
-    const width = 500;
+    const width = CHART_WIDTH;
 
     const stepX =
       width /
@@ -917,10 +1063,10 @@ export function Dashboard() {
     const mouseX =
       ((event.clientX - rect.left) /
         rect.width) *
-      500;
+      CHART_WIDTH;
 
     const stepX =
-      500 /
+      CHART_WIDTH /
       (MAX_HISTORY_LENGTH - 1);
 
     let nearestIndex = 0;
@@ -929,7 +1075,7 @@ export function Dashboard() {
     history.forEach(
       (_, index) => {
         const x =
-          500 -
+          CHART_WIDTH -
           (history.length - 1 - index) *
             stepX;
 
@@ -956,6 +1102,14 @@ export function Dashboard() {
     hoverIndex !== null
       ? getChartXPercent(hoverIndex)
       : 0;
+
+  const hasChartData =
+    history.some(
+      (point) =>
+        point.temperature !== null ||
+        point.humidity !== null ||
+        point.light !== null
+    );
 
   return (
     <div style={styles.container}>
@@ -991,6 +1145,29 @@ export function Dashboard() {
             50% {
               opacity: 0.5;
             }
+          }
+
+          .led-switch {
+            transition:
+              background 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.2s ease,
+              transform 0.15s ease;
+          }
+
+          .led-switch:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow:
+              0 0 0 3px rgba(2, 132, 199, 0.2);
+          }
+
+          .led-switch:active:not(:disabled) {
+            transform: translateY(0);
+          }
+
+          .led-switch:focus-visible {
+            outline: 2px solid #0284c7;
+            outline-offset: 2px;
           }
         `}
       </style>
@@ -1051,7 +1228,8 @@ export function Dashboard() {
           style={{
             ...styles.card,
             background: getValueGradient(
-              sensorData.temperature,
+              sensorData.temperature ??
+                SENSOR_CONFIG.temperature.min,
               SENSOR_CONFIG.temperature.min,
               SENSOR_CONFIG.temperature.max,
               '#fef3c7',
@@ -1083,7 +1261,8 @@ export function Dashboard() {
               }
             >
               {
-                sensorData.temperature
+                sensorData.temperature ??
+                  '--'
               }
             </span>
 
@@ -1101,7 +1280,8 @@ export function Dashboard() {
           style={{
             ...styles.card,
             background: getValueGradient(
-              sensorData.humidity,
+              sensorData.humidity ??
+                SENSOR_CONFIG.humidity.min,
               SENSOR_CONFIG.humidity.min,
               SENSOR_CONFIG.humidity.max,
               '#eff6ff',
@@ -1133,7 +1313,8 @@ export function Dashboard() {
               }
             >
               {
-                sensorData.humidity
+                sensorData.humidity ??
+                  '--'
               }
             </span>
 
@@ -1151,7 +1332,8 @@ export function Dashboard() {
           style={{
             ...styles.card,
             background: getValueGradient(
-              sensorData.light,
+              sensorData.light ??
+                SENSOR_CONFIG.light.min,
               SENSOR_CONFIG.light.min,
               SENSOR_CONFIG.light.max,
               '#f0fdf4',
@@ -1183,7 +1365,8 @@ export function Dashboard() {
               }
             >
               {
-                sensorData.light
+                sensorData.light ??
+                  '--'
               }
             </span>
 
@@ -1246,7 +1429,7 @@ export function Dashboard() {
                     styles.legendText
                   }
                 >
-                  Nhiệt độ
+                  Nhiệt độ (°C)
                 </span>
               </div>
 
@@ -1270,7 +1453,7 @@ export function Dashboard() {
                     styles.legendText
                   }
                 >
-                  Độ ẩm
+                  Độ ẩm (%)
                 </span>
               </div>
 
@@ -1294,7 +1477,7 @@ export function Dashboard() {
                     styles.legendText
                   }
                 >
-                  Ánh sáng
+                  Ánh sáng (Lux)
                 </span>
               </div>
             </div>
@@ -1306,9 +1489,77 @@ export function Dashboard() {
             }
           >
             <div
-              style={
-                styles.chartGridLines
-              }
+              style={styles.chartPlotRow}
+            >
+              <div
+                style={styles.yAxis}
+              >
+                {Y_AXIS_TICKS.map(
+                  (tick) => (
+                    <div
+                      key={tick}
+                      style={{
+                        ...styles.yAxisTick,
+                        top: `${getPlotTopPercent(
+                          tick
+                        )}%`,
+                        transform:
+                          'translateY(-50%)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          ...styles.yAxisValue,
+                          color:
+                            SENSOR_CONFIG
+                              .temperature
+                              .color,
+                        }}
+                      >
+                        {getAxisValue(
+                          'temperature',
+                          tick
+                        )}
+                      </span>
+
+                      <span
+                        style={{
+                          ...styles.yAxisValue,
+                          color:
+                            SENSOR_CONFIG
+                              .humidity
+                              .color,
+                        }}
+                      >
+                        {getAxisValue(
+                          'humidity',
+                          tick
+                        )}
+                      </span>
+
+                      <span
+                        style={{
+                          ...styles.yAxisValue,
+                          color:
+                            SENSOR_CONFIG
+                              .light
+                              .color,
+                        }}
+                      >
+                        {getAxisValue(
+                          'light',
+                          tick
+                        )}
+                      </span>
+                    </div>
+                  )
+                )}
+              </div>
+
+              <div
+                style={
+                  styles.chartGridLines
+                }
               onMouseMove={
                 handleChartMouseMove
               }
@@ -1316,40 +1567,19 @@ export function Dashboard() {
                 setHoverIndex(null)
               }
             >
-              <div
-                style={{
-                  ...styles.gridLine,
-                  top: '0%',
-                }}
-              />
-
-              <div
-                style={{
-                  ...styles.gridLine,
-                  top: '25%',
-                }}
-              />
-
-              <div
-                style={{
-                  ...styles.gridLine,
-                  top: '50%',
-                }}
-              />
-
-              <div
-                style={{
-                  ...styles.gridLine,
-                  top: '75%',
-                }}
-              />
-
-              <div
-                style={{
-                  ...styles.gridLine,
-                  top: '100%',
-                }}
-              />
+              {Y_AXIS_TICKS.map(
+                (tick) => (
+                  <div
+                    key={tick}
+                    style={{
+                      ...styles.gridLine,
+                      top: `${getPlotTopPercent(
+                        tick
+                      )}%`,
+                    }}
+                  />
+                )
+              )}
 
               <svg
                 viewBox="0 0 500 200"
@@ -1423,6 +1653,16 @@ export function Dashboard() {
                 />
               </svg>
 
+              {!hasChartData && (
+                <div
+                  style={
+                    styles.chartEmpty
+                  }
+                >
+                  Đang chờ dữ liệu...
+                </div>
+              )}
+
               {hoveredPoint && (
                 <>
                   <div
@@ -1458,7 +1698,9 @@ export function Dashboard() {
                       </span>
 
                       <span style={styles.tooltipValue}>
-                        {hoveredPoint.temperature} °C
+                        {hoveredPoint.temperature ??
+                          '--'}{' '}
+                        °C
                       </span>
                     </div>
 
@@ -1478,7 +1720,9 @@ export function Dashboard() {
                       </span>
 
                       <span style={styles.tooltipValue}>
-                        {hoveredPoint.humidity} %
+                        {hoveredPoint.humidity ??
+                          '--'}{' '}
+                        %
                       </span>
                     </div>
 
@@ -1498,12 +1742,15 @@ export function Dashboard() {
                       </span>
 
                       <span style={styles.tooltipValue}>
-                        {hoveredPoint.light} Lux
+                        {hoveredPoint.light ??
+                          '--'}{' '}
+                        Lux
                       </span>
                     </div>
                   </div>
                 </>
               )}
+              </div>
             </div>
           </div>
         </div>
@@ -1563,7 +1810,7 @@ export function Dashboard() {
                       >
                         <div
                           style={{
-                            ...styles.ledIndicator,
+                            ...styles.ledIndicator,color:"gray",
 
                             background:
                               isOn
@@ -1610,6 +1857,17 @@ export function Dashboard() {
 
                     <button
                       type="button"
+                      className="led-switch"
+                      aria-label={`${
+                        isOn
+                          ? 'Tắt'
+                          : 'Bật'
+                      } Đèn LED ${
+                        index + 1
+                      }`}
+                      aria-pressed={
+                        isOn
+                      }
                       onClick={() =>
                         toggleLED(
                           id
@@ -1623,8 +1881,17 @@ export function Dashboard() {
 
                         background:
                           isOn
-                            ? '#38bdf8'
-                            : 'rgba(255, 255, 255, 0.1)',
+                            ? '#0284c7'
+                            : '#cbd5e1',
+
+                        border: isOn
+                          ? '1px solid #0369a1'
+                          : '1px solid #94a3b8',
+
+                        boxShadow:
+                          isOn
+                            ? '0 0 0 3px rgba(2, 132, 199, 0.18)'
+                            : 'inset 0 1px 2px rgba(15, 23, 42, 0.12)',
 
                         opacity:
                           isLoading
@@ -1643,7 +1910,7 @@ export function Dashboard() {
 
                           transform:
                             isOn
-                              ? 'translateX(20px)'
+                              ? 'translateX(22px)'
                               : 'translateX(0px)',
                         }}
                       >
@@ -1903,7 +2170,47 @@ const styles: {
     borderLeft: '1px solid #e5e7eb',
     borderBottom: '1px solid #e5e7eb',
     minWidth: 0,
+    flex: '1 1 auto',
     overflow: 'hidden',
+  },
+
+  chartPlotRow: {
+    display: 'flex',
+    alignItems: 'stretch',
+    flex: '1 1 auto',
+    minHeight: 0,
+    minWidth: 0,
+  },
+
+  yAxis: {
+    position: 'relative',
+    width:
+      'clamp(84px, 11vw, 110px)',
+    height:
+      'clamp(180px, 30vh, 500px)',
+    flexShrink: 0,
+    marginRight: '6px',
+    minWidth: 0,
+  },
+
+  yAxisTick: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '4px',
+  },
+
+  yAxisValue: {
+    flex: 1,
+    fontSize:
+      'clamp(8px, 0.65vw, 11px)',
+    fontWeight: 600,
+    textAlign: 'right',
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
   },
 
   gridLine: {
@@ -1920,6 +2227,19 @@ const styles: {
     width: '100%',
     height: '100%',
     overflow: 'visible',
+  },
+
+  chartEmpty: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#94a3b8',
+    fontSize:
+      'clamp(10px, 0.8vw, 13px)',
+    fontWeight: 600,
+    pointerEvents: 'none',
   },
 
   hoverGuide: {
@@ -2065,16 +2385,15 @@ const styles: {
   },
 
   switchBtn: {
-    width: '44px',
-    minWidth: '44px',
-    height: '24px',
-    borderRadius: '12px',
+    width: '48px',
+    minWidth: '48px',
+    height: '26px',
+    borderRadius: '13px',
     border: 'none',
-    padding: '2px',
+    padding: '3px',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    transition: 'background 0.3s ease',
     flexShrink: 0,
   },
 
@@ -2084,7 +2403,7 @@ const styles: {
     borderRadius: '50%',
     background: '#ffffff',
     boxShadow:
-      '0 1px 3px rgba(15, 23, 42, 0.2)',
+      '0 1px 4px rgba(15, 23, 42, 0.35)',
     transition: 'transform 0.3s ease',
     display: 'flex',
     alignItems: 'center',

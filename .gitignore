@@ -18,3 +18,4 @@
 .env.*
 !.env.example
 *.log
+opencode.json
