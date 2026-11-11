@@ -15,15 +15,23 @@ public class MqttPublisherService {
     @Autowired
     private MessageChannel mqttOutboundChannel;
 
-    /**
-     * Gửi chuỗi trạng thái xuống MQTT topic cụ thể
-     * @param topic Tên topic (ví dụ: "control")
-     * @param payload Dữ liệu gửi đi (ví dụ: "send_status" hoặc "1011")
-     */
     public void sendToMqtt(String topic, String payload) {
         Message<String> message = MessageBuilder.withPayload(payload)
                 .setHeader(MqttHeaders.TOPIC, topic)
                 .build();
+
         mqttOutboundChannel.send(message);
+    }
+
+    public void sendManualControl(String payload) {
+        sendToMqtt("control/manual", payload);
+    }
+
+    public void sendAutoControl(String payload) {
+        sendToMqtt("control/auto", payload);
+    }
+
+    public void requestLedStatus(String requestId) {
+        sendToMqtt("control/status", requestId);
     }
 }
